@@ -2,20 +2,21 @@ name: Daily EPEX Scraper
 
 on:
   schedule:
-    - cron: '30 16 * * *'  # Tous les jours à 18h30 heure française
+    - cron: "30 17 * * *" # Tous les jours à 17h30 UTC (19h30 heure française)
   workflow_dispatch:
 
 jobs:
-  scrape:
+  run-scraper:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: '3.11'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -23,10 +24,13 @@ jobs:
       - name: Run scraper
         run: python epex_scraper.py
 
-      - name: Commit and push
+      - name: Commit and push CSV
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          git add .
-          git commit -m "Add EPEX prices for $(date +'%Y-%m-%d')" || echo "No changes to commit"
-          git push
+          git add *.csv
+          if git diff --cached --quiet; then
+            echo "No new CSV to commit"
+          else
+            git commit -m "Add new EPEX prices for $(date +'%Y-%m-%d')"
+            git push
