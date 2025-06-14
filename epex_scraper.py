@@ -4,7 +4,8 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 def fetch_epex_prices():
-    tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    tomorrow = "2025-06-15"
+    ''(datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")''
     url = f"https://www.epexspot.com/en/market-results?market_area=FR&auction=MRC&trading_date={datetime.date.today()}&delivery_date={tomorrow}&modality=Auction&sub_modality=DayAhead&data_mode=table"
 
     headers = {
