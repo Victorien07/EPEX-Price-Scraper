@@ -26,7 +26,7 @@ jobs:
           echo "📥 Lancement du scraper..."
           python epex_scraper.py
           echo "📁 Contenu du dossier après exécution :"
-          ls -l
+          ls -lha .
 
       - name: Commit and push CSV
         run: |
@@ -38,4 +38,4 @@ jobs:
             git push
           else
             echo "⚠️ Aucun fichier CSV à committer"
-            exit 0
+          fi
