@@ -39,3 +39,11 @@ jobs:
           else
             echo "⚠️ Aucun fichier CSV à committer"
           fi
+
+      - name: Commit and push archived HTML
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Actions"
+          git add archives/html/*.html || echo "No HTML to add"
+          git commit -m "📄 Archive HTML for $(date +'%Y-%m-%d')" || echo "Nothing to commit"
+          git push
