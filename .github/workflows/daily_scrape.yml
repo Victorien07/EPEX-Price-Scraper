@@ -22,8 +22,11 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run scraper
-        run: python epex_scraper.py
-
+        run: |
+          echo "📥 Lancement du scraper..."
+          python epex_scraper.py
+          echo "✅ Script terminé"
+          ls -l
       - name: Commit and push CSV
         run: |
           git config --global user.email "action@github.com"
