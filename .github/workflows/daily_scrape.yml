@@ -2,7 +2,7 @@ name: Daily EPEX Scraper
 
 on:
   schedule:
-    - cron: "30 17 * * *" # Tous les jours à 17h30 UTC (19h30 heure française)
+    - cron: "30 17 * * *"
   workflow_dispatch:
 
 jobs:
@@ -25,15 +25,17 @@ jobs:
         run: |
           echo "📥 Lancement du scraper..."
           python epex_scraper.py
-          echo "✅ Script terminé"
+          echo "📁 Contenu du dossier après exécution :"
           ls -l
+
       - name: Commit and push CSV
         run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          git add *.csv
-          if git diff --cached --quiet; then
-            echo "No new CSV to commit"
-          else
-            git commit -m "Add new EPEX prices for $(date +'%Y-%m-%d')"
+          if ls *.csv 1> /dev/null 2>&1; then
+            git config --global user.email "action@github.com"
+            git config --global user.name "GitHub Action"
+            git add *.csv
+            git commit -m "Add EPEX prices for $(date +'%Y-%m-%d')"
             git push
+          else
+            echo "⚠️ Aucun fichier CSV à committer"
+            exit 0
