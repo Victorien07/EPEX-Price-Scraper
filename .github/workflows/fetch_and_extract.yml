@@ -1,0 +1,57 @@
+name: Fetch and Extract EPEX Data
+
+on:
+  schedule:
+    - cron: "0 18 * * *"  # 18h UTC → Télécharger
+    - cron: "0 20 * * *"  # 20h UTC → Extraire
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    if: github.event.schedule == '0 18 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Fetch HTML
+        run: |
+          mkdir -p html
+          python scripts/fetch_html.py
+      - name: Commit HTML
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add html/
+          git commit -m "📄 HTML téléchargé $(date +'%Y-%m-%d')" || echo "Pas de changement"
+          git push
+
+  extract:
+    if: github.event.schedule == '0 20 * * *'
+    runs-on: ubuntu-latest
+    needs: fetch
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install beautifulsoup4 pandas
+      - name: Extract CSV
+        run: |
+          mkdir -p data
+          python scripts/extract_prices.py
+      - name: Commit CSV
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git commit -m "📈 Données extraites $(date +'%Y-%m-%d')" || echo "Pas de changement"
+          git push
