@@ -2,7 +2,7 @@ name: Daily EPEX Scraper
 
 on:
   schedule:
-    - cron: "30 17 * * *"
+    - cron: "0 13 * * *"  # 15h00 Paris (UTC+2)
   workflow_dispatch:
 
 jobs:
