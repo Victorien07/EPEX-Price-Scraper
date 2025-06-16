@@ -2,7 +2,7 @@ name: Extract EPEX data from HTML
 
 on:
   schedule:
-    - cron: "15 13 * * *"  # 15h15 Paris (UTC+2)
+    - cron: "15 13 * * *"  # Tous les jours à 15h15 Paris (13h15 UTC)
   workflow_dispatch:
 
 jobs:
@@ -22,8 +22,7 @@ jobs:
         run: pip install beautifulsoup4 pandas
 
       - name: Extraire depuis les fichiers HTML
-        run: |
-          python extract_prices.py
+        run: python extract_prices.py
 
       - name: Commit du fichier CSV
         run: |
@@ -32,7 +31,7 @@ jobs:
           git add data/epexspot_prices.csv
           git commit -m "📈 CSV mis à jour automatiquement" || echo "Pas de changement"
           git push
-          
+
       - name: Copier le CSV dans docs/
         run: |
           mkdir -p docs
@@ -43,5 +42,5 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git add docs/epexspot_prices.csv
-          git commit -m "🔄 Mise à jour du fichier CSV public"
+          git commit -m "🔄 Mise à jour du fichier CSV public" || echo "Pas de changement"
           git push
