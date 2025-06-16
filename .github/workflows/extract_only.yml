@@ -2,7 +2,7 @@ name: Extract EPEX data from HTML
 
 on:
   schedule:
-    - cron: "30 20 * * *"  # Tous les jours à 20h30 UTC
+    - cron: "15 13 * * *"  # 15h15 Paris (UTC+2)
   workflow_dispatch:
 
 jobs:
