@@ -9,6 +9,4 @@ Bienvenue sur la page publique du scraper EPEX Spot.
 
 Ces données sont mises à jour automatiquement chaque jour à 17h30.
 
-git add docs/index.md
-git commit -m "📝 Ajout d'un index pour GitHub Pages"
-git push
+
