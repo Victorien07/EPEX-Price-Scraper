@@ -32,3 +32,16 @@ jobs:
           git add data/epexspot_prices.csv
           git commit -m "📈 CSV mis à jour automatiquement" || echo "Pas de changement"
           git push
+          
+      - name: Copier le CSV dans docs/
+        run: |
+          mkdir -p docs
+          cp data/epexspot_prices.csv docs/
+
+      - name: Commit & push fichier public dans docs/
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add docs/epexspot_prices.csv
+          git commit -m "🔄 Mise à jour du fichier CSV public"
+          git push
