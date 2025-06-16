@@ -23,7 +23,7 @@ jobs:
 
       - name: Extraire depuis les fichiers HTML
         run: |
-          python scripts/extract_prices.py
+          python extract_prices.py
 
       - name: Commit du fichier CSV
         run: |
