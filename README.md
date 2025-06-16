@@ -15,5 +15,8 @@ Les données sont extraites depuis le site officiel, archivées en HTML et conve
 
 ---
 
-## 📦 Structure du projet
+## 📬 Contact
+
+Pour toute question ou contribution :  
+📧 victorien.ficheux@edf.fr
 
