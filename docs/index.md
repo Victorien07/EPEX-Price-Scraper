@@ -7,6 +7,6 @@ Bienvenue sur la page publique du scraper EPEX Spot.
 
 ---
 
-Ces données sont mises à jour automatiquement chaque jour à 17h30.
+Ces données sont mises à jour automatiquement chaque jour à 15h15.
 
 
