@@ -10,8 +10,8 @@ if not html_files:
     raise FileNotFoundError("Aucun fichier HTML trouvé dans archives/html/")
 
 # Créer le dossier CSV s’il n’existe pas
-os.makedirs("docs", exist_ok=True)
-csv_file = "docs/epexspot_prices.csv"
+os.makedirs("data", exist_ok=True)
+csv_file = "data/epexspot_prices.csv"
 
 # Charger l’existant s’il y a déjà un CSV
 existing = pd.read_csv(csv_file) if os.path.exists(csv_file) else pd.DataFrame()
