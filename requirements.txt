@@ -2,4 +2,5 @@ pandas
 requests
 beautifulsoup4
 openpyxl
-pip install selenium webdriver-manager
+selenium 
+webdriver-manager
