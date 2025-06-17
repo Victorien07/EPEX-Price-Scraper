@@ -1,12 +1,3 @@
-Parfait, je vais te fournir **le code corrigé et complet**, avec interaction via Selenium pour :
-
-* **Cliquer sur le calendrier**
-* **Entrer la date de la veille (`yesterday`)**
-* Attendre le **rafraîchissement des données**
-* **Extraire les valeurs réelles pour GAZ et CO2**
-
----
-
 ### ✅ Code final `fetch_gaz_co2_html.py` corrigé (clic date + parsing)
 
 ```python
@@ -134,23 +125,3 @@ with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
 
 print("✅ Données Gaz & CO2 récupérées et enregistrées.")
 ```
-
----
-
-### ✅ Ce que ce script fait maintenant :
-
-* Va sur la page GAZ/CO2
-* Clique sur le sélecteur de date
-* Tape la date d’hier (au bon format `yyyy-mm-dd`)
-* Attend que le contenu se mette à jour
-* Parse correctement les données affichées
-* Les exporte dans un fichier Excel
-
----
-
-Souhaite-tu aussi :
-
-* Fusionner cela avec ton script électricité dans un seul fichier ?
-* Ou exécuter ces parties séparément comme tu fais déjà ?
-
-Je peux t’aider pour les deux.
