@@ -7,8 +7,9 @@ import pandas as pd
 
 # === Dates ===
 now = datetime.utcnow() + timedelta(hours=2)  # UTC->Paris
-today = now.strftime("%Y-%m-%d")      # Date du jour J (gaz & CO2)
+today = now.strftime("%Y-%m-%d")              # Date du jour
 delivery = (now + timedelta(days=1)).strftime("%Y-%m-%d")  # J+1 (élec)
+yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d") # J-1 (gaz & CO2)
 
 # === Dossiers ===
 os.makedirs("archives/html", exist_ok=True)
@@ -29,7 +30,7 @@ if not os.path.exists(elec_html):
     with open(elec_html, "w", encoding="utf-8") as f:
         f.write(r.text)
 
-# === Extraction électricité ===
+# === Extraction Électricité ===
 def extract_elec(html_file):
     soup = BeautifulSoup(open(html_file, encoding="utf-8"), "html.parser")
     hours = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
@@ -45,8 +46,8 @@ def extract_elec(html_file):
 
 df_elec = extract_elec(elec_html)
 
-# === Télécharger et extraire Gaz (J) ===
-gaz_html = f"archives/html_gaz/eex_gaz_{today}.html"
+# === Télécharger et extraire Gaz (J–1) ===
+gaz_html = f"archives/html_gaz/eex_gaz_{yesterday}.html"
 gaz_url = "https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot"
 if not os.path.exists(gaz_html):
     r = requests.get(gaz_url, timeout=20)
@@ -69,22 +70,22 @@ if peg_row:
             val = "-"
         parsed_values.append(val)
     gaz_data.append({
-        "Date": today,
+        "Date": yesterday,
         "Bid": parsed_values[0],
         "Ask": parsed_values[1],
         "Last": parsed_values[2],
     })
 else:
     gaz_data.append({
-        "Date": today,
+        "Date": yesterday,
         "Bid": "-",
         "Ask": "-",
         "Last": "-",
     })
 df_gaz = pd.DataFrame(gaz_data)
 
-# === Télécharger et extraire CO2 (J) ===
-co2_html = f"archives/html_co2/eex_co2_{today}.html"
+# === Télécharger et extraire CO2 (J–1) ===
+co2_html = f"archives/html_co2/eex_co2_{yesterday}.html"
 co2_url = "https://www.eex.com/en/market-data/market-data-hub/environmentals/spot"
 if not os.path.exists(co2_html):
     r = requests.get(co2_url, timeout=20)
@@ -104,7 +105,7 @@ if last_price_tag:
 else:
     last_price = "-"
 co2_data.append({
-    "Date": today,
+    "Date": yesterday,
     "Last Price": last_price,
 })
 df_co2 = pd.DataFrame(co2_data)
