@@ -12,6 +12,7 @@ Les données sont extraites depuis le site officiel, archivées en HTML et conve
 - 📁 Les fichiers HTML sont archivés dans [`archives/html`](archives/html).
 - 📈 Le fichier de données final est disponible ici :  
   👉 [`data/epexspot_prices.csv`](data/epexspot_prices.csv)
+  👉 [`data/epexspot_prices.xlsx`](data/epexspot_prices.xlsx)
 
 ⚠️ **Note** : l'exécution automatique peut avoir du retard, en raison des files d’attente GitHub Actions.
 
