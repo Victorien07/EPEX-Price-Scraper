@@ -48,15 +48,6 @@ else:
 
     df = pd.DataFrame(price_data, index=heure_labels)
 
-    # Ajout des lignes de moyennes demandées
-    df.loc["FR DAY PEAK"] = df.iloc[8:20].mean()  # de 08h à 20h exclu (08-19)
-    df.loc["FR DAY BASE"] = df.iloc[0:24].mean()
-    df.loc["JOURNEE ECO | MOYENNE PRIX SPOT 07h à 20h"] = df.iloc[7:20].mean()
-
-    # Ajout d'une colonne unité
-    df.insert(1, "Unité", "€/MWh")
-    df.iloc[24:, 1] = ""  # Vider colonne unité pour les lignes de moyenne
-
-    # Exporter en Excel
+    # Exporter en Excel sans colonne d'unité, ni lignes de moyenne
     df.to_excel(excel_file, sheet_name="Prix Spot", index_label="Heure")
     print(f"✅ Fichier Excel créé : {excel_file}")
