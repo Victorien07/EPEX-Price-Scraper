@@ -1,21 +1,17 @@
-from bs4 import BeautifulSoup
-import pandas as pd
+import os
 import glob
 import re
-import os
 from datetime import datetime
+from bs4 import BeautifulSoup
+import pandas as pd
 
-# Lire tous les fichiers HTML triés par date
-html_files = sorted(glob.glob("archives/html/epex_FR_*.html"))
-if not html_files:
-    raise FileNotFoundError("Aucun fichier HTML trouvé dans archives/html/")
-
-# Créer le dossier Excel s’il n’existe pas
+# === Fichier de sortie Excel ===
 os.makedirs("data", exist_ok=True)
 excel_file = "data/epexspot_prices.xlsx"
 
-# Liste pour stocker les colonnes par date
+# === Étape 1 : Feuille "Prix Spot" (électricité) ===
 price_data = {}
+html_files = sorted(glob.glob("archives/html/epex_FR_*.html"))
 
 for html_file in html_files:
     date_match = re.search(r"epex_FR_(\d{4}-\d{2}-\d{2})", html_file)
@@ -23,7 +19,7 @@ for html_file in html_files:
         continue
     delivery_date = date_match.group(1)
     date_obj = datetime.strptime(delivery_date, "%Y-%m-%d")
-    col_label = date_obj.strftime("%d-%b").lower().replace("jan", "janv").replace("may", "mai").replace("oct", "oct.")  # Traduction FR simplifiée
+    col_label = date_obj.strftime("%d-%b").lower().replace("jan", "janv").replace("may", "mai").replace("oct", "oct.")
 
     with open(html_file, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
@@ -39,15 +35,67 @@ for html_file in html_files:
 
     price_data[col_label] = prices
 
-# Créer la structure de tableau
-if not price_data:
-    print("⚠️ Aucun nouveau fichier HTML à traiter.")
-else:
-    # Index des heures
-    heure_labels = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
+# Feuille 1 : électricité
+heure_labels = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
+df_elec = pd.DataFrame(price_data, index=heure_labels)
 
-    df = pd.DataFrame(price_data, index=heure_labels)
+# === Étape 2 : Feuille "Gaz" ===
+gaz_files = sorted(glob.glob("archives/html_gaz/eex_gaz_*.html"))
+gaz_data = []
 
-    # Exporter en Excel sans colonne d'unité, ni lignes de moyenne
-    df.to_excel(excel_file, sheet_name="Prix Spot", index_label="Heure")
-    print(f"✅ Fichier Excel créé : {excel_file}")
+for gaz_file in gaz_files:
+    date_match = re.search(r"eex_gaz_(\d{4}-\d{2}-\d{2})", gaz_file)
+    gaz_date = date_match.group(1) if date_match else "N/A"
+
+    with open(gaz_file, "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
+
+    peg_row = soup.find("td", string=re.compile("PEG Day-Ahead", re.I))
+    if not peg_row:
+        continue
+
+    row = peg_row.find_parent("tr")
+    values = row.find_all("td")[1:4]
+    parsed_values = [float(td.text.strip().replace(",", ".")) if td.text.strip() else None for td in values]
+
+    gaz_data.append({
+        "Date": gaz_date,
+        "Bid": parsed_values[0],
+        "Ask": parsed_values[1],
+        "Last": parsed_values[2]
+    })
+
+df_gaz = pd.DataFrame(gaz_data).sort_values("Date")
+
+# === Étape 3 : Feuille "CO2" ===
+co2_files = sorted(glob.glob("archives/html_co2/eex_co2_*.html"))
+co2_data = []
+
+for co2_file in co2_files:
+    date_match = re.search(r"eex_co2_(\d{4}-\d{2}-\d{2})", co2_file)
+    co2_date = date_match.group(1) if date_match else "N/A"
+
+    with open(co2_file, "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
+
+    last_price_tag = soup.find("th", string=re.compile("Last Price", re.I))
+    if not last_price_tag:
+        continue
+
+    td = last_price_tag.find_next("td")
+    last_price = float(td.text.strip().replace(",", ".")) if td and td.text.strip() else None
+
+    co2_data.append({
+        "Date": co2_date,
+        "Last Price": last_price
+    })
+
+df_co2 = pd.DataFrame(co2_data).sort_values("Date")
+
+# === Écriture de toutes les feuilles dans l'Excel ===
+with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
+    df_elec.to_excel(writer, sheet_name="Prix Spot", index_label="Heure")
+    df_gaz.to_excel(writer, sheet_name="Gaz", index=False)
+    df_co2.to_excel(writer, sheet_name="CO2", index=False)
+
+print(f"✅ Fichier Excel mis à jour avec électricité, gaz et CO2 : {excel_file}")
