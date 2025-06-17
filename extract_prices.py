@@ -65,7 +65,19 @@ for gaz_file in gaz_files:
         "Last": parsed_values[2]
     })
 
-df_gaz = pd.DataFrame(gaz_data).sort_values("Date")
+if gaz_data:
+    df_gaz = pd.DataFrame(gaz_data).sort_values("Date")
+else:
+    # Si aucune donnée de gaz n'a été trouvée
+    today = datetime.today().strftime("%Y-%m-%d")
+    df_gaz = pd.DataFrame([{
+        "Date": today,
+        "Contract": "PEG Day Ahead",
+        "Last": "-",
+        "High": "-",
+        "Low": "-"
+    }])
+
 
 # === Étape 3 : Feuille "CO2" ===
 co2_files = sorted(glob.glob("archives/html_co2/eex_co2_*.html"))
@@ -90,7 +102,15 @@ for co2_file in co2_files:
         "Last Price": last_price
     })
 
-df_co2 = pd.DataFrame(co2_data).sort_values("Date")
+if co2_data:
+    df_co2 = pd.DataFrame(co2_data).sort_values("Date")
+else:
+    today = datetime.today().strftime("%Y-%m-%d")
+    df_co2 = pd.DataFrame([{
+        "Date": today,
+        "Last Price": "-"
+    }])
+
 
 # === Écriture de toutes les feuilles dans l'Excel ===
 with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
