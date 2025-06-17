@@ -5,25 +5,33 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 import pandas as pd
 
-# === Fichier de sortie Excel ===
+# === Préparation ===
 os.makedirs("data", exist_ok=True)
 excel_file = "data/epexspot_prices.xlsx"
 
-# === Helper : Fonction pour récupérer la date à partir du nom du fichier ===
+# === Helper : Récupérer date depuis le nom de fichier ===
 def extract_date(filename, prefix):
     match = re.search(fr"{prefix}_(\d{{4}}-\d{{2}}-\d{{2}})", filename)
     return match.group(1) if match else None
 
-# === Étape 1 : Feuille "Prix Spot" (électricité) ===
-elec_files = sorted(glob.glob("archives/html/epex_FR_*.html"), key=os.path.getmtime)
+# === Lecture fichier Excel existant si dispo ===
+if os.path.exists(excel_file):
+    existing_sheets = pd.read_excel(excel_file, sheet_name=None, index_col=0)
+    df_existing_elec = existing_sheets.get("Prix Spot", pd.DataFrame())
+    df_existing_gaz = existing_sheets.get("Gaz", pd.DataFrame())
+    df_existing_co2 = existing_sheets.get("CO2", pd.DataFrame())
+else:
+    df_existing_elec = pd.DataFrame()
+    df_existing_gaz = pd.DataFrame()
+    df_existing_co2 = pd.DataFrame()
 
-# On conserve uniquement le fichier le plus récent pour chaque date
+# === Électricité ("Prix Spot") ===
+elec_files = sorted(glob.glob("archives/html/epex_FR_*.html"), key=os.path.getmtime)
 elec_latest = {}
 for path in elec_files:
     date_str = extract_date(path, "epex_FR")
-    if not date_str:
-        continue
-    elec_latest[date_str] = path  # Remplace si déjà vu = on garde le plus récent
+    if date_str:
+        elec_latest[date_str] = path
 
 price_data = {}
 for delivery_date, html_file in sorted(elec_latest.items()):
@@ -37,15 +45,49 @@ for delivery_date, html_file in sorted(elec_latest.items()):
     hours = [a.text.strip() for a in hour_tags]
 
     price_tags = soup.select("div.js-table-values table tbody tr td:nth-of-type(4)")
-    prices = [float(td.text.strip().replace(",", ".")) for td in price_tags]
+    prices = [td.text.strip().replace(",", ".") for td in price_tags]
 
-    if len(hours) == 24 and len(prices) == 24:
+    try:
+        prices = [float(p) for p in prices]
+    except ValueError:
+        prices = []
+
+    if len(prices) == 24:
         price_data[col_label] = prices
+    else:
+        price_data[col_label] = ["-"] * 24
 
+# Créer labels horaires
 heure_labels = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
-df_elec = pd.DataFrame(price_data, index=heure_labels)
+df_new_elec = pd.DataFrame(price_data, index=heure_labels)
 
-# === Étape 2 : Feuille "Gaz" ===
+# Fusion avec ancienne version
+df_elec = df_existing_elec.copy()
+for col in df_new_elec.columns:
+    if col not in df_existing_elec.columns:
+        df_elec[col] = df_new_elec[col]
+    else:
+        # Mettre à jour uniquement si les valeurs sont différentes
+        old = df_existing_elec[col].tolist()
+        new = df_new_elec[col].tolist()
+        if old != new:
+            df_elec[col] = new
+
+# Conserver les colonnes de l'ancien Excel qui n'existent plus en HTML
+for col in df_existing_elec.columns:
+    if col not in df_elec.columns:
+        df_elec[col] = df_existing_elec[col]
+
+# Réordonner colonnes par date
+def date_key(col):
+    try:
+        return datetime.strptime(col[:2] + "-" + col[3:], "%d-%b")
+    except:
+        return datetime.max
+
+df_elec = df_elec.reindex(sorted(df_elec.columns, key=date_key), axis=1)
+
+# === Gaz ===
 gaz_files = sorted(glob.glob("archives/html_gaz/eex_gaz_*.html"), key=os.path.getmtime)
 gaz_latest = {}
 for path in gaz_files:
@@ -53,32 +95,42 @@ for path in gaz_files:
     if date_str:
         gaz_latest[date_str] = path
 
-gaz_data = []
+gaz_records = []
 for gaz_date, gaz_file in sorted(gaz_latest.items()):
     with open(gaz_file, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
 
     peg_row = soup.find("td", string=re.compile("PEG Day-Ahead", re.I))
     if not peg_row:
-        continue
+        bid, ask, last = "-", "-", "-"
+    else:
+        row = peg_row.find_parent("tr")
+        values = row.find_all("td")[1:4]
+        try:
+            parsed = [float(td.text.strip().replace(",", ".")) if td.text.strip() else "-" for td in values]
+        except:
+            parsed = ["-", "-", "-"]
+        bid, ask, last = parsed
 
-    row = peg_row.find_parent("tr")
-    values = row.find_all("td")[1:4]
-    parsed_values = [float(td.text.strip().replace(",", ".")) if td.text.strip() else "-" for td in values]
-
-    gaz_data.append({
+    gaz_records.append({
         "Date": gaz_date,
-        "Bid": parsed_values[0],
-        "Ask": parsed_values[1],
-        "Last": parsed_values[2]
+        "Bid": bid,
+        "Ask": ask,
+        "Last": last
     })
 
-df_gaz = pd.DataFrame(gaz_data).sort_values("Date") if gaz_data else pd.DataFrame([{
-    "Date": datetime.today().strftime("%Y-%m-%d"),
-    "Bid": "-", "Ask": "-", "Last": "-"
-}])
+df_new_gaz = pd.DataFrame(gaz_records).sort_values("Date")
 
-# === Étape 3 : Feuille "CO2" ===
+# Fusion GAZ
+if not df_existing_gaz.empty:
+    df_gaz = pd.merge(df_existing_gaz, df_new_gaz, on="Date", how="outer", suffixes=("_old", ""))
+    for col in ["Bid", "Ask", "Last"]:
+        df_gaz[col] = df_gaz[col].combine_first(df_gaz[f"{col}_old"])
+        df_gaz.drop(columns=[f"{col}_old"], inplace=True)
+else:
+    df_gaz = df_new_gaz
+
+# === CO2 ===
 co2_files = sorted(glob.glob("archives/html_co2/eex_co2_*.html"), key=os.path.getmtime)
 co2_latest = {}
 for path in co2_files:
@@ -86,26 +138,33 @@ for path in co2_files:
     if date_str:
         co2_latest[date_str] = path
 
-co2_data = []
+co2_records = []
 for co2_date, co2_file in sorted(co2_latest.items()):
     with open(co2_file, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
 
     last_price_tag = soup.find("th", string=re.compile("Last Price", re.I))
     td = last_price_tag.find_next("td") if last_price_tag else None
-    last_price = float(td.text.strip().replace(",", ".")) if td and td.text.strip() else "-"
-
-    co2_data.append({
+    try:
+        price = float(td.text.strip().replace(",", ".")) if td and td.text.strip() else "-"
+    except:
+        price = "-"
+    co2_records.append({
         "Date": co2_date,
-        "Last Price": last_price
+        "Last Price": price
     })
 
-df_co2 = pd.DataFrame(co2_data).sort_values("Date") if co2_data else pd.DataFrame([{
-    "Date": datetime.today().strftime("%Y-%m-%d"),
-    "Last Price": "-"
-}])
+df_new_co2 = pd.DataFrame(co2_records).sort_values("Date")
 
-# === Écriture dans l'Excel final ===
+# Fusion CO2
+if not df_existing_co2.empty:
+    df_co2 = pd.merge(df_existing_co2, df_new_co2, on="Date", how="outer", suffixes=("_old", ""))
+    df_co2["Last Price"] = df_co2["Last Price"].combine_first(df_co2["Last Price_old"])
+    df_co2.drop(columns=["Last Price_old"], inplace=True)
+else:
+    df_co2 = df_new_co2
+
+# === Sauvegarde Excel ===
 with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
     df_elec.to_excel(writer, sheet_name="Prix Spot", index_label="Heure")
     df_gaz.to_excel(writer, sheet_name="Gaz", index=False)
