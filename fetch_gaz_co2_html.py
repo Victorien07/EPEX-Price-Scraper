@@ -1,6 +1,3 @@
-### ✅ Code final `fetch_gaz_co2_html.py` corrigé (clic date + parsing)
-
-```python
 import os
 import re
 import time
@@ -124,4 +121,4 @@ with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
     df_co2.to_excel(writer, sheet_name="CO2", index=False)
 
 print("✅ Données Gaz & CO2 récupérées et enregistrées.")
-```
+
