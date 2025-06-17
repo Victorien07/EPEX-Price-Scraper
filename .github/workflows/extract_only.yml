@@ -19,28 +19,28 @@ jobs:
           python-version: '3.11'
 
       - name: Installer les dépendances
-        run: pip install beautifulsoup4 pandas
+        run: pip install beautifulsoup4 pandas openpyxl
 
       - name: Extraire depuis les fichiers HTML
         run: python extract_prices.py
 
-      - name: Commit du fichier CSV
+      - name: Commit du fichier Excel
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/epexspot_prices.csv
-          git commit -m "📈 CSV mis à jour automatiquement" || echo "Pas de changement"
+          git add data/epexspot_prices.xlsx
+          git commit -m "📊 Excel mis à jour automatiquement" || echo "Pas de changement"
           git push
 
-      - name: Copier le CSV dans docs/
+      - name: Copier le fichier Excel dans docs/
         run: |
           mkdir -p docs
-          cp data/epexspot_prices.csv docs/
+          cp data/epexspot_prices.xlsx docs/
 
       - name: Commit & push fichier public dans docs/
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          git add docs/epexspot_prices.csv
-          git commit -m "🔄 Mise à jour du fichier CSV public" || echo "Pas de changement"
+          git add docs/epexspot_prices.xlsx
+          git commit -m "🔄 Mise à jour du fichier Excel public" || echo "Pas de changement"
           git push
