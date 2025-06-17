@@ -1,37 +1,42 @@
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# Configuration
-today = datetime.today().strftime("%Y-%m-%d")
-gaz_url = "https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot"
+# Dates
+today = datetime.today()
+tomorrow = today + timedelta(days=1)
+delivery_day = tomorrow.strftime("%Y-%m-%d")
+
+# URL gaz : lien "market results" pour Day-Ahead France
+gaz_url = (
+    "https://www.epexspot.com/en/market-results"
+    f"?market_area=FR&auction=MRC&trading_date={today.strftime('%Y-%m-%d')}"
+    f"&delivery_date={delivery_day}"
+    "&underlying_year=&modality=Auction&sub_modality=DayAhead"
+    "&technology=&data_mode=table&period=&production_period="
+)
+
+# CO₂ comme avant
 co2_url = "https://www.eex.com/en/market-data/market-data-hub/environmentals/spot"
 
-# Dossiers de destination
-gaz_folder = "archives/html_gaz"
-co2_folder = "archives/html_co2"
-os.makedirs(gaz_folder, exist_ok=True)
-os.makedirs(co2_folder, exist_ok=True)
+# Dossiers de sortie
+os.makedirs("archives/html_gaz", exist_ok=True)
+os.makedirs("archives/html_co2", exist_ok=True)
 
-# Fichiers de sortie
-gaz_file = os.path.join(gaz_folder, f"eex_gaz_{today}.html")
-co2_file = os.path.join(co2_folder, f"eex_co2_{today}.html")
+gaz_file = f"archives/html_gaz/eex_gaz_{delivery_day}.html"
+co2_file = f"archives/html_co2/eex_co2_{today.strftime('%Y-%m-%d')}.html"
 
-# Fonction utilitaire pour télécharger une page
-def download_page(url, file_path, label):
-    if os.path.exists(file_path):
-        print(f"⏩ {label} déjà téléchargé ({file_path})")
-        return
-    try:
-        print(f"⬇️ Téléchargement de {label} depuis {url}")
-        response = requests.get(url, timeout=15)
-        response.raise_for_status()
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(response.text)
-        print(f"✅ {label} sauvegardé : {file_path}")
-    except Exception as e:
-        print(f"❌ Erreur lors du téléchargement de {label} : {e}")
+def download(url, path, label):
+    if os.path.exists(path):
+        print(f"✅ {label} déjà téléchargé ({path})")
+    else:
+        r = requests.get(url, timeout=20)
+        if r.status_code == 200:
+            open(path, "w", encoding="utf-8").write(r.text)
+            print(f"⬇️ {label} téléchargé sur {path}")
+        else:
+            print(f"⚠️ Pas encore disponible : {label} (HTTP {r.status_code})")
+            open(path, "w", encoding="utf-8").write(r.text)  # Optionnel
 
-# Télécharger les deux pages
-download_page(gaz_url, gaz_file, "Gaz NBP")
-download_page(co2_url, co2_file, "CO₂ EUA Spot")
+download(gaz_url, gaz_file, f"Gaz PEG Day-Ahead {delivery_day}")
+download(co2_url, co2_file, "CO₂ EUA Spot")
