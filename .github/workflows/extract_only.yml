@@ -21,8 +21,11 @@ jobs:
       - name: Installer les dépendances
         run: pip install beautifulsoup4 pandas openpyxl
 
-      - name: Extraire depuis les fichiers HTML
-        run: python extract_prices.py
+      - name: Extraire les données HTML (élec, gaz, CO₂)
+        run: |
+          echo "📦 Lancement du script d'extraction multi-sources..."
+          python extract_prices.py
+          echo "✅ Extraction terminée."
 
       - name: Commit du fichier Excel
         run: |
