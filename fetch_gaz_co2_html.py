@@ -37,26 +37,36 @@ def fetch_html_with_date(url, path, date_str):
     driver.get(url)
 
     try:
-        # Clic sur le bouton du calendrier
-        WebDriverWait(driver, 10).until(
+        print("⏳ Attente bouton calendrier...")
+        calendar_button = WebDriverWait(driver, 20).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, ".eex-date-picker__toggle"))
-        ).click()
+        )
+        calendar_button.click()
+        print("✅ Bouton calendrier cliqué.")
 
-        # Sélection de l'input de date
-        date_input = WebDriverWait(driver, 10).until(
+        print("⏳ Attente input date...")
+        date_input = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "input.eex-date-picker__input"))
         )
         date_input.clear()
+        print(f"⏳ Envoi de la date : {date_str}")
         date_input.send_keys(date_str)
         date_input.send_keys(Keys.ENTER)
+        print("✅ Date envoyée.")
 
-        # Attente du rafraîchissement de la page
-        time.sleep(6)
+        print("⏳ Attente du rafraîchissement de la page...")
+        time.sleep(8)
 
         with open(path, "w", encoding="utf-8") as f:
             f.write(driver.page_source)
+        print(f"✅ Page sauvegardée dans {path}")
+
+    except Exception as e:
+        print("❌ Erreur durant fetch_html_with_date :", e)
+        raise
     finally:
         driver.quit()
+
 
 # === Télécharger et extraire Gaz (J–1) ===
 gaz_html = f"archives/html_gaz/eex_gaz_{yesterday}.html"
