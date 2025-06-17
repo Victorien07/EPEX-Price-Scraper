@@ -3,30 +3,27 @@ import pandas as pd
 import glob
 import re
 import os
+from datetime import datetime
 
 # Lire tous les fichiers HTML triés par date
 html_files = sorted(glob.glob("archives/html/epex_FR_*.html"))
 if not html_files:
     raise FileNotFoundError("Aucun fichier HTML trouvé dans archives/html/")
 
-# Créer le dossier CSV s’il n’existe pas
+# Créer le dossier Excel s’il n’existe pas
 os.makedirs("data", exist_ok=True)
-csv_file = "data/epexspot_prices.csv"
+excel_file = "data/epexspot_prices.xlsx"
 
-# Charger l’existant s’il y a déjà un CSV
-existing = pd.read_csv(csv_file) if os.path.exists(csv_file) else pd.DataFrame()
+# Liste pour stocker les colonnes par date
+price_data = {}
 
-# Pour chaque HTML
-all_data = []
 for html_file in html_files:
     date_match = re.search(r"epex_FR_(\d{4}-\d{2}-\d{2})", html_file)
     if not date_match:
         continue
     delivery_date = date_match.group(1)
-
-    # Sauter les doublons déjà dans le CSV
-    if not existing.empty and delivery_date in existing["Date"].values:
-        continue
+    date_obj = datetime.strptime(delivery_date, "%Y-%m-%d")
+    col_label = date_obj.strftime("%d-%b").lower().replace("jan", "janv").replace("may", "mai").replace("oct", "oct.")  # Traduction FR simplifiée
 
     with open(html_file, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
@@ -37,32 +34,29 @@ for html_file in html_files:
     price_tags = soup.select("div.js-table-values table tbody tr td:nth-of-type(4)")
     prices = [float(td.text.strip().replace(",", ".")) for td in price_tags]
 
-    baseload_tag = soup.find("th", string=re.compile("Baseload"))
-    peakload_tag = soup.find("th", string=re.compile("Peakload"))
-    baseload = float(baseload_tag.find_next("span").text.strip().replace(",", ".")) if baseload_tag else None
-    peakload = float(peakload_tag.find_next("span").text.strip().replace(",", ".")) if peakload_tag else None
-
     if len(hours) != 24 or len(prices) != 24:
         continue
 
-    df = pd.DataFrame({
-        "Date": delivery_date,
-        "Hour": hours,
-        "Price (€/MWh)": prices,
-        "Baseload": [baseload]*24,
-        "Peakload": [peakload]*24
-    })
+    price_data[col_label] = prices
 
-    all_data.append(df)
-
-# Fusionner et écrire
-if all_data:
-    new_data = pd.concat(all_data)
-    if not existing.empty:
-        final = pd.concat([existing, new_data])
-    else:
-        final = new_data
-    final.to_csv(csv_file, index=False)
-    print(f"✅ CSV mis à jour : {csv_file}")
-else:
+# Créer la structure de tableau
+if not price_data:
     print("⚠️ Aucun nouveau fichier HTML à traiter.")
+else:
+    # Index des heures
+    heure_labels = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
+
+    df = pd.DataFrame(price_data, index=heure_labels)
+
+    # Ajout des lignes de moyennes demandées
+    df.loc["FR DAY PEAK"] = df.iloc[8:20].mean()  # de 08h à 20h exclu (08-19)
+    df.loc["FR DAY BASE"] = df.iloc[0:24].mean()
+    df.loc["JOURNEE ECO | MOYENNE PRIX SPOT 07h à 20h"] = df.iloc[7:20].mean()
+
+    # Ajout d'une colonne unité
+    df.insert(1, "Unité", "€/MWh")
+    df.iloc[24:, 1] = ""  # Vider colonne unité pour les lignes de moyenne
+
+    # Exporter en Excel
+    df.to_excel(excel_file, sheet_name="Prix Spot", index_label="Heure")
+    print(f"✅ Fichier Excel créé : {excel_file}")
