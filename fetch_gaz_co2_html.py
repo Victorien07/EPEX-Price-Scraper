@@ -1,42 +1,44 @@
-import os
-import requests
+import os, re, glob, requests
 from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
+import pandas as pd
 
-# Dates
-today = datetime.today()
-tomorrow = today + timedelta(days=1)
-delivery_day = tomorrow.strftime("%Y-%m-%d")
+# === Préparation des dates ===
+today = datetime.utcnow() + timedelta(hours=2)  # UTC→Paris
+trading = today.strftime("%Y-%m-%d")
+delivery = (today + timedelta(days=1)).strftime("%Y-%m-%d")
 
-# URL gaz : lien "market results" pour Day-Ahead France
-gaz_url = (
-    "https://www.epexspot.com/en/market-results"
-    f"?market_area=FR&auction=MRC&trading_date={today.strftime('%Y-%m-%d')}"
-    f"&delivery_date={delivery_day}"
-    "&underlying_year=&modality=Auction&sub_modality=DayAhead"
-    "&technology=&data_mode=table&period=&production_period="
-)
+# === Télécharger page ELECTRICITÉ si pas déjà ===
+os.makedirs("archives/html", exist_ok=True)
+elec_html = f"archives/html/epex_FR_{delivery}.html"
+url = (f"https://www.epexspot.com/en/market-results?"
+       f"market_area=FR&auction=MRC&trading_date={trading}"
+       f"&delivery_date={delivery}&modality=Auction"
+       "&sub_modality=DayAhead&data_mode=table")
+if not os.path.exists(elec_html):
+    r = requests.get(url, timeout=20)
+    with open(elec_html, "w", encoding="utf-8") as f:
+        f.write(r.text)
 
-# CO₂ comme avant
-co2_url = "https://www.eex.com/en/market-data/market-data-hub/environmentals/spot"
-
-# Dossiers de sortie
-os.makedirs("archives/html_gaz", exist_ok=True)
-os.makedirs("archives/html_co2", exist_ok=True)
-
-gaz_file = f"archives/html_gaz/eex_gaz_{delivery_day}.html"
-co2_file = f"archives/html_co2/eex_co2_{today.strftime('%Y-%m-%d')}.html"
-
-def download(url, path, label):
-    if os.path.exists(path):
-        print(f"✅ {label} déjà téléchargé ({path})")
+# === Fonction d'extraction heure par heure ===
+def extract_elec(html_file):
+    soup = BeautifulSoup(open(html_file, encoding="utf-8"), "html.parser")
+    hours = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
+    price_tags = soup.select("table.market-result__table tbody tr td:nth-of-type(2)")
+    if len(price_tags) == 24:
+        values = [float(td.text.replace(",", ".")) for td in price_tags]
     else:
-        r = requests.get(url, timeout=20)
-        if r.status_code == 200:
-            open(path, "w", encoding="utf-8").write(r.text)
-            print(f"⬇️ {label} téléchargé sur {path}")
-        else:
-            print(f"⚠️ Pas encore disponible : {label} (HTTP {r.status_code})")
-            open(path, "w", encoding="utf-8").write(r.text)  # Optionnel
+        values = ["-"] * 24
+    return pd.DataFrame([values], index=[delivery], columns=hours).T
 
-download(gaz_url, gaz_file, f"Gaz PEG Day-Ahead {delivery_day}")
-download(co2_url, co2_file, "CO₂ EUA Spot")
+# === Gaz & CO₂ comme avant (extraits des HTML existants) ===
+# [Ton code Gaz et CO2 ici, non modifié...]
+
+# === Génère Excel ===
+df_elec = extract_elec(elec_html)
+# ensuite df_gaz, df_co2
+
+with pd.ExcelWriter("data/epexspot_prices.xlsx", engine="openpyxl") as writer:
+    df_elec.to_excel(writer, sheet_name="Prix Spot")
+    df_gaz.to_excel(writer, sheet_name="Gaz", index=False)
+    df_co2.to_excel(writer, sheet_name="CO2", index=False)
