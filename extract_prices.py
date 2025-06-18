@@ -75,8 +75,10 @@ df_new_gaz = pd.DataFrame(gaz_records).sort_values("Date")
 if not df_existing_gaz.empty:
     df_gaz = pd.merge(df_existing_gaz, df_new_gaz, on="Date", how="outer", suffixes=("_old", ""))
     for col in ["Last Price", "Last Volume", "End of Day Index"]:
-        df_gaz[col] = df_gaz[col].combine_first(df_gaz.get(f"{col}_old"))
-        df_gaz.drop(columns=[f"{col}_old"], inplace=True)
+        old_col = f"{col}_old"
+        if old_col in df_gaz.columns:
+            df_gaz[col] = df_gaz[col].combine_first(df_gaz[old_col])
+            df_gaz.drop(columns=[old_col], inplace=True)
 else:
     df_gaz = df_new_gaz
 
@@ -89,19 +91,22 @@ for path in co2_files:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         item = data["results"]["items"][0]
-        price = item.get("ontradeprice")
         co2_records.append({
             "Date": date_str,
-            "Last Price": price if price is not None else "-"
+            "Last Price": item.get("ontradeprice", "-")
         })
     except Exception:
-        co2_records.append({"Date": date_str, "Last Price": "-"})
+        co2_records.append({
+            "Date": date_str,
+            "Last Price": "-"
+        })
 
 df_new_co2 = pd.DataFrame(co2_records).sort_values("Date")
 if not df_existing_co2.empty:
     df_co2 = pd.merge(df_existing_co2, df_new_co2, on="Date", how="outer", suffixes=("_old", ""))
-    df_co2["Last Price"] = df_co2["Last Price"].combine_first(df_co2.get("Last Price_old"))
-    df_co2.drop(columns=["Last Price_old"], inplace=True)
+    if "Last Price_old" in df_co2.columns:
+        df_co2["Last Price"] = df_co2["Last Price"].combine_first(df_co2["Last Price_old"])
+        df_co2.drop(columns=["Last Price_old"], inplace=True)
 else:
     df_co2 = df_new_co2
 
