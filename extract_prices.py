@@ -3,6 +3,7 @@ import glob
 import re
 import json
 from datetime import datetime
+from bs4 import BeautifulSoup
 import pandas as pd
 
 # === Préparation ===
