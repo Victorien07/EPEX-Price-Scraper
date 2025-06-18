@@ -40,9 +40,25 @@ for delivery_date, html_file in sorted(elec_latest.items()):
 
     with open(html_file, "r", encoding="utf-8") as f:
         content = f.read()
-    hours = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
-    prices = re.findall(r'<td[^>]*>(\d+,\d+)</td>', content)
-    prices = [float(p.replace(",", ".")) for p in prices[:24]] if len(prices) >= 24 else ["-"] * 24
+
+    # Extraction robuste des lignes contenant Buy/Sell/Volume/Price
+    lines = re.findall(
+        r"(\d{1,3}(?:[.,]\d{3})*[.,]\d+)[ \t]+"
+        r"(\d{1,3}(?:[.,]\d{3})*[.,]\d+)[ \t]+"
+        r"(\d{1,3}(?:[.,]\d{3})*[.,]\d+)[ \t]+"
+        r"(-?\d{1,3}(?:[.,]\d{3})*[.,]\d+)", content)
+
+    prices = []
+    for match in lines[:24]:  # On garde les 24 premières heures
+        raw_price = match[3].replace(",", ".").replace(" ", "")
+        try:
+            prices.append(float(raw_price))
+        except ValueError:
+            prices.append("-")
+
+    if len(prices) < 24:
+        prices += ["-"] * (24 - len(prices))
+
     price_data[col_label] = prices
 
 df_new_elec = pd.DataFrame(price_data, index=[f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)])
@@ -111,13 +127,12 @@ else:
     df_co2 = df_new_co2
 
 # === Sauvegarde Excel ===
-# === Nettoyage éventuel des colonnes inutiles ===
 colonnes_a_supprimer = ["Bid", "Ask", "Last"]
-
 for df in [df_gaz, df_co2]:
     for col in colonnes_a_supprimer:
         if col in df.columns:
             df.drop(columns=[col], inplace=True)
+
 with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
     df_elec.to_excel(writer, sheet_name="Prix Spot", index_label="Heure")
     df_gaz.to_excel(writer, sheet_name="Gaz", index=False)
