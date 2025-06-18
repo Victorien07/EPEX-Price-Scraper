@@ -37,14 +37,7 @@ def fetch_html_with_date(url, path, date_str):
     driver.get(url)
 
     try:
-        print("⏳ Attente bouton calendrier...")
-        calendar_button = WebDriverWait(driver, 20).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, ".eex-date-picker__toggle"))
-        )
-        calendar_button.click()
-        print("✅ Bouton calendrier cliqué.")
-
-        print("⏳ Attente input date...")
+        print("⏳ Attente input date directement visible...")
         date_input = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "input.eex-date-picker__input"))
         )
@@ -66,6 +59,7 @@ def fetch_html_with_date(url, path, date_str):
         raise
     finally:
         driver.quit()
+
 
 
 # === Télécharger et extraire Gaz (J–1) ===
