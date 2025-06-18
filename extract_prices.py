@@ -1,8 +1,8 @@
 import os
 import glob
 import re
+import json
 from datetime import datetime
-from bs4 import BeautifulSoup
 import pandas as pd
 
 # === Préparation ===
@@ -25,7 +25,7 @@ else:
     df_existing_gaz = pd.DataFrame()
     df_existing_co2 = pd.DataFrame()
 
-# === Électricité ("Prix Spot") ===
+# === ÉLECTRICITÉ ===
 elec_files = sorted(glob.glob("archives/html/epex_FR_*.html"), key=os.path.getmtime)
 elec_latest = {}
 for path in elec_files:
@@ -39,92 +39,37 @@ for delivery_date, html_file in sorted(elec_latest.items()):
     col_label = date_obj.strftime("%d-%b").lower().replace("jan", "janv").replace("may", "mai").replace("oct", "oct.")
 
     with open(html_file, "r", encoding="utf-8") as f:
-        soup = BeautifulSoup(f, "html.parser")
+        content = f.read()
+    hours = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
+    prices = re.findall(r'<td[^>]*>(\d+,\d+)</td>', content)
+    prices = [float(p.replace(",", ".")) for p in prices[:24]] if len(prices) >= 24 else ["-"] * 24
+    price_data[col_label] = prices
 
-    hour_tags = soup.select("div.fixed-column ul li a")
-    hours = [a.text.strip() for a in hour_tags]
+df_new_elec = pd.DataFrame(price_data, index=[f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)])
+df_elec = df_existing_elec.combine_first(df_new_elec)
 
-    price_tags = soup.select("div.js-table-values table tbody tr td:nth-of-type(4)")
-    prices = [td.text.strip().replace(",", ".") for td in price_tags]
-
-    try:
-        prices = [float(p) for p in prices]
-    except ValueError:
-        prices = []
-
-    if len(prices) == 24:
-        price_data[col_label] = prices
-    else:
-        price_data[col_label] = ["-"] * 24
-
-# Créer labels horaires
-heure_labels = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
-df_new_elec = pd.DataFrame(price_data, index=heure_labels)
-
-# Fusion avec ancienne version
-df_elec = df_existing_elec.copy()
-for col in df_new_elec.columns:
-    if col not in df_existing_elec.columns:
-        df_elec[col] = df_new_elec[col]
-    else:
-        # Mettre à jour uniquement si les valeurs sont différentes
-        old = df_existing_elec[col].tolist()
-        new = df_new_elec[col].tolist()
-        if old != new:
-            df_elec[col] = new
-
-# Conserver les colonnes de l'ancien Excel qui n'existent plus en HTML
-for col in df_existing_elec.columns:
-    if col not in df_elec.columns:
-        df_elec[col] = df_existing_elec[col]
-
-# Réordonner colonnes par date
-def date_key(col):
-    try:
-        return datetime.strptime(col[:2] + "-" + col[3:], "%d-%b")
-    except:
-        return datetime.max
-
-df_elec = df_elec.reindex(sorted(df_elec.columns, key=date_key), axis=1)
-
-# === Gaz ===
+# === GAZ ===
 gaz_files = sorted(glob.glob("archives/html_gaz/eex_gaz_*.html"), key=os.path.getmtime)
-gaz_latest = {}
+gaz_records = []
 for path in gaz_files:
     date_str = extract_date(path, "eex_gaz")
-    if date_str:
-        gaz_latest[date_str] = path
-
-gaz_records = []
-for gaz_date, gaz_file in sorted(gaz_latest.items()):
-    with open(gaz_file, "r", encoding="utf-8") as f:
-        soup = BeautifulSoup(f, "html.parser")
-
-    peg_row = soup.find("td", string=re.compile("PEG Day-Ahead", re.I))
-    if not peg_row:
-        bid, ask, last = "-", "-", "-"
-    else:
-        row = peg_row.find_parent("tr")
-        values = row.find_all("td")[1:4]
-        try:
-            parsed = [float(td.text.strip().replace(",", ".")) if td.text.strip() else "-" for td in values]
-        except:
-            parsed = ["-", "-", "-"]
-        bid, ask, last = parsed
-
-    gaz_records.append({
-        "Date": gaz_date,
-        "Bid": bid,
-        "Ask": ask,
-        "Last": last
-    })
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        item = data["results"]["items"][0]
+        gaz_records.append({
+            "Date": date_str,
+            "Last Price": item.get("ontradeprice", "-"),
+            "Last Volume": item.get("onexchsingletradevolume", "-"),
+            "End of Day Index": item.get("close", "-")
+        })
+    except Exception:
+        gaz_records.append({"Date": date_str, "Last Price": "-", "Last Volume": "-", "End of Day Index": "-"})
 
 df_new_gaz = pd.DataFrame(gaz_records).sort_values("Date")
-
-# Fusion GAZ
 if not df_existing_gaz.empty:
     df_gaz = pd.merge(df_existing_gaz, df_new_gaz, on="Date", how="outer", suffixes=("_old", ""))
-    for col in ["Bid", "Ask", "Last"]:
+    for col in ["Last Price", "Last Volume", "End of Day Index"]:
         df_gaz[col] = df_gaz[col].combine_first(df_gaz[f"{col}_old"])
         df_gaz.drop(columns=[f"{col}_old"], inplace=True)
 else:
@@ -132,31 +77,18 @@ else:
 
 # === CO2 ===
 co2_files = sorted(glob.glob("archives/html_co2/eex_co2_*.html"), key=os.path.getmtime)
-co2_latest = {}
+co2_records = []
 for path in co2_files:
     date_str = extract_date(path, "eex_co2")
-    if date_str:
-        co2_latest[date_str] = path
-
-co2_records = []
-for co2_date, co2_file in sorted(co2_latest.items()):
-    with open(co2_file, "r", encoding="utf-8") as f:
-        soup = BeautifulSoup(f, "html.parser")
-
-    last_price_tag = soup.find("th", string=re.compile("Last Price", re.I))
-    td = last_price_tag.find_next("td") if last_price_tag else None
     try:
-        price = float(td.text.strip().replace(",", ".")) if td and td.text.strip() else "-"
-    except:
-        price = "-"
-    co2_records.append({
-        "Date": co2_date,
-        "Last Price": price
-    })
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        item = data["results"]["items"][0]
+        co2_records.append({"Date": date_str, "Last Price": item.get("ontradeprice", "-")})
+    except Exception:
+        co2_records.append({"Date": date_str, "Last Price": "-"})
 
 df_new_co2 = pd.DataFrame(co2_records).sort_values("Date")
-
-# Fusion CO2
 if not df_existing_co2.empty:
     df_co2 = pd.merge(df_existing_co2, df_new_co2, on="Date", how="outer", suffixes=("_old", ""))
     df_co2["Last Price"] = df_co2["Last Price"].combine_first(df_co2["Last Price_old"])
