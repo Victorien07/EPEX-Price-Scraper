@@ -40,13 +40,22 @@ for delivery_date, html_file in sorted(elec_latest.items()):
 
     with open(html_file, "r", encoding="utf-8") as f:
         content = f.read()
-    hours = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
     prices = re.findall(r'<td[^>]*>(\d+,\d+)</td>', content)
-    prices = [float(p.replace(",", ".")) for p in prices[:24]] if len(prices) >= 24 else ["-"] * 24
+    if len(prices) >= 24:
+        prices = [float(p.replace(",", ".")) for p in prices[:24]]
+    else:
+        prices = ["-"] * 24  # Pas assez de données
+
     price_data[col_label] = prices
 
+# Nouveau DataFrame avec les nouvelles données
 df_new_elec = pd.DataFrame(price_data, index=[f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)])
-df_elec = df_existing_elec.combine_first(df_new_elec)
+
+# Fusion : on ÉCRASE les anciennes données avec les nouvelles
+df_elec = df_existing_elec.copy()
+for col in df_new_elec.columns:
+    df_elec[col] = df_new_elec[col]
+
 
 # === GAZ ===
 gaz_files = sorted(glob.glob("archives/html_gaz/eex_gaz_*.html"), key=os.path.getmtime)
