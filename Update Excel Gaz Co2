@@ -1,0 +1,55 @@
+import os
+import json
+import glob
+import pandas as pd
+from datetime import datetime
+
+# === Constantes ===
+EXCEL_FILE = "data/gaz_co2_data.xlsx"
+GAZ_FOLDER = "archives/html_gaz"
+CO2_FOLDER = "archives/html_co2"
+
+# === GAZ ===
+gaz_files = sorted(glob.glob(f"{GAZ_FOLDER}/eex_gaz_*.html"))
+gaz_data = []
+for path in gaz_files:
+    with open(path, encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+            item = data.get("results", {}).get("items", [])[0]
+            date_str = datetime.strptime(item["tradedatetimegmt"].split()[0], "%m/%d/%Y").strftime("%Y-%m-%d")
+            gaz_data.append({
+                "Date": date_str,
+                "Last Price": item.get("ontradeprice", "-"),
+                "Last Volume": item.get("onexchsingletradevolume", "-"),
+                "End of Day Index": item.get("close", "-")
+            })
+        except Exception as e:
+            print(f"⚠️ Erreur parsing GAZ: {path} → {e}")
+
+# === CO2 ===
+co2_files = sorted(glob.glob(f"{CO2_FOLDER}/eex_co2_*.html"))
+co2_data = []
+for path in co2_files:
+    with open(path, encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+            item = data.get("results", {}).get("items", [])[0]
+            date_str = datetime.strptime(item["tradedatetimegmt"].split()[0], "%m/%d/%Y").strftime("%Y-%m-%d")
+            co2_data.append({
+                "Date": date_str,
+                "Last Price": item.get("ontradeprice", "-")
+            })
+        except Exception as e:
+            print(f"⚠️ Erreur parsing CO2: {path} → {e}")
+
+# === DataFrames ===
+df_gaz = pd.DataFrame(gaz_data).sort_values("Date")
+df_co2 = pd.DataFrame(co2_data).sort_values("Date")
+
+# === Écriture Excel ===
+with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+    df_gaz.to_excel(writer, sheet_name="Gaz", index=False)
+    df_co2.to_excel(writer, sheet_name="CO2", index=False)
+
+print(f"✅ Fichier Excel mis à jour : {EXCEL_FILE}")
