@@ -35,19 +35,24 @@ def setup_driver():
 def fetch_html_with_date(url, path, date_str):
     driver = setup_driver()
     driver.get(url)
+    time.sleep(5)  # Donne du temps au JS
 
     try:
-        print("⏳ Attente input date directement visible...")
+        # Passage à l'iframe si présente
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        print(f"🔍 Nombre d'iframes détectées : {len(iframes)}")
+        driver.switch_to.frame(iframes[0])  # Tester la première iframe
+
+        print("⏳ Attente input date...")
         date_input = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "input.eex-date-picker__input"))
         )
         date_input.clear()
-        print(f"⏳ Envoi de la date : {date_str}")
         date_input.send_keys(date_str)
         date_input.send_keys(Keys.ENTER)
         print("✅ Date envoyée.")
 
-        print("⏳ Attente du rafraîchissement de la page...")
         time.sleep(8)
 
         with open(path, "w", encoding="utf-8") as f:
@@ -55,10 +60,14 @@ def fetch_html_with_date(url, path, date_str):
         print(f"✅ Page sauvegardée dans {path}")
 
     except Exception as e:
+        with open("debug_failed_page.html", "w", encoding="utf-8") as f:
+            f.write(driver.page_source)
+        print("🛠 HTML sauvegardé pour debug: debug_failed_page.html")
         print("❌ Erreur durant fetch_html_with_date :", e)
         raise
     finally:
         driver.quit()
+
 
 
 
