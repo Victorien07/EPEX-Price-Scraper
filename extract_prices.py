@@ -46,7 +46,7 @@ for delivery_date, html_file in sorted(elec_latest.items()):
     price_data[col_label] = prices
 
 df_new_elec = pd.DataFrame(price_data, index=[f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)])
-df_elec = df_existing_elec.combine_first(df_new_elec)
+df_elec = df_new_elec.combine_first(df_existing_elec)
 
 # === GAZ ===
 gaz_files = sorted(glob.glob("archives/html_gaz/eex_gaz_*.html"), key=os.path.getmtime)
