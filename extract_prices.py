@@ -111,6 +111,13 @@ else:
     df_co2 = df_new_co2
 
 # === Sauvegarde Excel ===
+# === Nettoyage éventuel des colonnes inutiles ===
+colonnes_a_supprimer = ["Bid", "Ask", "Last"]
+
+for df in [df_gaz, df_co2]:
+    for col in colonnes_a_supprimer:
+        if col in df.columns:
+            df.drop(columns=[col], inplace=True)
 with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
     df_elec.to_excel(writer, sheet_name="Prix Spot", index_label="Heure")
     df_gaz.to_excel(writer, sheet_name="Gaz", index=False)
