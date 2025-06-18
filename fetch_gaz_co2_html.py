@@ -2,10 +2,9 @@ import os
 import requests
 from datetime import datetime, timedelta
 
-# === Dates ===
+# === Setup
 now = datetime.utcnow() + timedelta(hours=2)
-yesterday_display = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-yesterday_api = (now - timedelta(days=1)).strftime("%Y/%m/%d")  # format API
+yesterday_api = (now - timedelta(days=1)).strftime("%Y/%m/%d")
 
 # === Dossiers
 os.makedirs("archives/html_gaz", exist_ok=True)
@@ -19,7 +18,7 @@ headers = {
     "User-Agent": "Mozilla/5.0"
 }
 
-# === Gaz
+# === GAZ ===
 gaz_api = "https://webservice-eex.gvsi.com/query/json/getDaily/ontradeprice/onexchsingletradevolume/close/tradedatetimegmt/"
 gaz_params = {
     "priceSymbol": '"#E.PEG_GND1"',
@@ -28,21 +27,26 @@ gaz_params = {
     "dailybarinterval": "Days",
     "aggregatepriceselection": "First"
 }
-gaz_html = f"archives/html_gaz/eex_gaz_{yesterday_display}.html"
 
 try:
-    print(f"🌐 Récupération données GAZ pour {yesterday_display}...")
+    print("🌐 Récupération données GAZ...")
     resp = requests.get(gaz_api, headers=headers, params=gaz_params, timeout=15)
     resp.raise_for_status()
+    json_data = resp.json()
+
+    item = json_data.get("results", {}).get("items", [])[0]
+    raw_date = item.get("tradedatetimegmt", "")
+    parsed_date = datetime.strptime(raw_date.split()[0], "%m/%d/%Y").strftime("%Y-%m-%d")
+    gaz_html = f"archives/html_gaz/eex_gaz_{parsed_date}.html"
+
     with open(gaz_html, "w", encoding="utf-8") as f:
         f.write(resp.text)
-    print(f"✅ Fichier HTML GAZ sauvegardé dans {gaz_html}")
-except Exception as e:
-    print(f"❌ Erreur récupération gaz : {e}")
-    with open(gaz_html, "w", encoding="utf-8") as f:
-        f.write("")
+    print(f"✅ Données GAZ sauvegardées : {gaz_html}")
 
-# === CO2
+except Exception as e:
+    print(f"❌ Erreur récupération GAZ : {e}")
+
+# === CO2 ===
 co2_api = "https://webservice-eex.gvsi.com/query/json/getDaily/ontradeprice/onexchsingletradevolume/close/onexchtradevolumeeex/offexchtradevolumeeex/tradedatetimegmt/"
 co2_params = {
     "priceSymbol": '"/E.SEME[0]"',
@@ -51,16 +55,21 @@ co2_params = {
     "dailybarinterval": "Days",
     "aggregatepriceselection": "First"
 }
-co2_html = f"archives/html_co2/eex_co2_{yesterday_display}.html"
 
 try:
-    print(f"🌐 Récupération données CO2 pour {yesterday_display}...")
+    print("🌐 Récupération données CO2...")
     resp = requests.get(co2_api, headers=headers, params=co2_params, timeout=15)
     resp.raise_for_status()
+    json_data = resp.json()
+
+    item = json_data.get("results", {}).get("items", [])[0]
+    raw_date = item.get("tradedatetimegmt", "")
+    parsed_date = datetime.strptime(raw_date.split()[0], "%m/%d/%Y").strftime("%Y-%m-%d")
+    co2_html = f"archives/html_co2/eex_co2_{parsed_date}.html"
+
     with open(co2_html, "w", encoding="utf-8") as f:
         f.write(resp.text)
-    print(f"✅ Fichier HTML CO2 sauvegardé dans {co2_html}")
+    print(f"✅ Données CO2 sauvegardées : {co2_html}")
+
 except Exception as e:
     print(f"❌ Erreur récupération CO2 : {e}")
-    with open(co2_html, "w", encoding="utf-8") as f:
-        f.write("")
