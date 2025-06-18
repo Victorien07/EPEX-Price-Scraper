@@ -26,53 +26,55 @@ def setup_driver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
-def fetch_html_with_date(url, path, date_str):
+def fetch_html_with_date(url, path, date_str, max_wait=60):
     driver = setup_driver()
-    driver.get(url)
     print(f"🌐 Accès à {url}")
-    time.sleep(5)
+    driver.get(url)
 
     try:
-        # Détection iframe ou non
-        iframes = driver.find_elements(By.TAG_NAME, "iframe")
-        if iframes:
-            print(f"🔁 Passage à l’iframe : {len(iframes)} trouvées.")
-            driver.switch_to.frame(iframes[0])
-        else:
-            print("ℹ️ Pas d'iframe trouvée, on reste sur le document principal.")
-
-        # Scroll pour charger éléments JS
-        driver.execute_script("window.scrollTo(0, 400);")
-        time.sleep(3)
-
-        print("⏳ Recherche du champ date...")
-        date_input = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "input.eex-date-picker__input"))
+        # Attente de l'apparition d'au moins une iframe (chargée dynamiquement)
+        print("⏳ Attente iframe dynamique...")
+        WebDriverWait(driver, max_wait).until(
+            lambda d: len(d.find_elements(By.TAG_NAME, "iframe")) > 0
         )
 
-        date_input.clear()
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        print(f"✅ {len(iframes)} iframe(s) détectée(s). Passage à la première.")
+        driver.switch_to.frame(iframes[0])
+
+        # Attente que le champ de date apparaisse
+        print("⏳ Recherche champ date dans l’iframe...")
+        date_input = WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "input.eex-date-picker__input"))
+        )
+        print("✅ Champ date détecté.")
+
+        # Scroll et interaction
+        driver.execute_script("arguments[0].scrollIntoView();", date_input)
         time.sleep(1)
+        date_input.clear()
         date_input.send_keys(date_str)
         date_input.send_keys(Keys.ENTER)
-        print(f"✅ Date {date_str} envoyée.")
+        print(f"📅 Date envoyée : {date_str}")
 
-        time.sleep(8)  # Attente du rechargement
+        # Attente que la page se mette à jour
+        time.sleep(10)
 
         with open(path, "w", encoding="utf-8") as f:
             f.write(driver.page_source)
         print(f"✅ HTML sauvegardé dans {path}")
 
     except Exception as e:
-        print("❌ Erreur :", e)
+        print(f"❌ Erreur pendant la récupération : {e}")
         with open("debug_failed_page.html", "w", encoding="utf-8") as f:
             f.write(driver.page_source)
         driver.save_screenshot("debug_failed_screenshot.png")
-        print("🛠 HTML sauvegardé pour debug: debug_failed_page.html")
-        print("📸 Screenshot sauvegardé : debug_failed_screenshot.png")
+        print("📸 Screenshot sauvegardé pour analyse.")
         raise
 
     finally:
         driver.quit()
+
 
 # === Téléchargement GAZ
 gaz_html = f"archives/html_gaz/eex_gaz_{yesterday}.html"
