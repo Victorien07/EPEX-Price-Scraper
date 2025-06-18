@@ -25,7 +25,7 @@ else:
     df_existing_gaz = pd.DataFrame()
     df_existing_co2 = pd.DataFrame()
 
-# === ÉLECTRICITÉ ===
+# === Électricité ("Prix Spot") ===
 elec_files = sorted(glob.glob("archives/html/epex_FR_*.html"), key=os.path.getmtime)
 elec_latest = {}
 for path in elec_files:
@@ -39,30 +39,53 @@ for delivery_date, html_file in sorted(elec_latest.items()):
     col_label = date_obj.strftime("%d-%b").lower().replace("jan", "janv").replace("may", "mai").replace("oct", "oct.")
 
     with open(html_file, "r", encoding="utf-8") as f:
-        content = f.read()
+        soup = BeautifulSoup(f, "html.parser")
 
-    # Extraction robuste des lignes contenant Buy/Sell/Volume/Price
-    lines = re.findall(
-        r"(\d{1,3}(?:[.,]\d{3})*[.,]\d+)[ \t]+"
-        r"(\d{1,3}(?:[.,]\d{3})*[.,]\d+)[ \t]+"
-        r"(\d{1,3}(?:[.,]\d{3})*[.,]\d+)[ \t]+"
-        r"(-?\d{1,3}(?:[.,]\d{3})*[.,]\d+)", content)
+    hour_tags = soup.select("div.fixed-column ul li a")
+    hours = [a.text.strip() for a in hour_tags]
 
-    prices = []
-    for match in lines[:24]:  # On garde les 24 premières heures
-        raw_price = match[3].replace(",", ".").replace(" ", "")
-        try:
-            prices.append(float(raw_price))
-        except ValueError:
-            prices.append("-")
+    price_tags = soup.select("div.js-table-values table tbody tr td:nth-of-type(4)")
+    prices = [td.text.strip().replace(",", ".") for td in price_tags]
 
-    if len(prices) < 24:
-        prices += ["-"] * (24 - len(prices))
+    try:
+        prices = [float(p) for p in prices]
+    except ValueError:
+        prices = []
 
-    price_data[col_label] = prices
+    if len(prices) == 24:
+        price_data[col_label] = prices
+    else:
+        price_data[col_label] = ["-"] * 24
 
-df_new_elec = pd.DataFrame(price_data, index=[f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)])
-df_elec = df_existing_elec.combine_first(df_new_elec)
+# Créer labels horaires
+heure_labels = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
+df_new_elec = pd.DataFrame(price_data, index=heure_labels)
+
+# Fusion avec ancienne version
+df_elec = df_existing_elec.copy()
+for col in df_new_elec.columns:
+    if col not in df_existing_elec.columns:
+        df_elec[col] = df_new_elec[col]
+    else:
+        # Mettre à jour uniquement si les valeurs sont différentes
+        old = df_existing_elec[col].tolist()
+        new = df_new_elec[col].tolist()
+        if old != new:
+            df_elec[col] = new
+
+# Conserver les colonnes de l'ancien Excel qui n'existent plus en HTML
+for col in df_existing_elec.columns:
+    if col not in df_elec.columns:
+        df_elec[col] = df_existing_elec[col]
+
+# Réordonner colonnes par date
+def date_key(col):
+    try:
+        return datetime.strptime(col[:2] + "-" + col[3:], "%d-%b")
+    except:
+        return datetime.max
+
+df_elec = df_elec.reindex(sorted(df_elec.columns, key=date_key), axis=1)
 
 # === GAZ ===
 gaz_files = sorted(glob.glob("archives/html_gaz/eex_gaz_*.html"), key=os.path.getmtime)
