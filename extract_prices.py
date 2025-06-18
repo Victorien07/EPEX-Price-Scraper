@@ -43,7 +43,12 @@ for path in elec_files:
     tds = soup.find_all("td")
     prices = []
     for td in tds:
-        if re.match(r"\d+,\d+", td.get_text()):
+    txt = td.get_text(strip=True).replace(",", ".")
+    if re.fullmatch(r"\d+\.\d+", txt):
+        try:
+            prices.append(float(txt))
+        except ValueError:
+            continue
             prices.append(float(td.get_text().replace(",", ".")))
     if len(prices) < 24:
         print(f"⚠️ Données incomplètes pour {col_label} ({len(prices)}/24)")
