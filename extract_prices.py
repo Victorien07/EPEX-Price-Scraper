@@ -99,25 +99,26 @@ for path in gaz_files:
         item = data["results"]["items"][0]
         gaz_records.append({
             "Date": date_str,
-            "Prix Gaz (€/MWh)": item.get("ontradeprice", "-")
+            "Last Price": item.get("ontradeprice", "-")
         })
     except Exception:
         gaz_records.append({
             "Date": date_str,
-            "Prix Gaz (€/MWh)": "-"
+            "Last Price": "-"
         })
 
 df_new_gaz = pd.DataFrame(gaz_records).sort_values("Date")
 
 if not df_existing_gaz.empty:
     df_gaz = pd.merge(df_existing_gaz, df_new_gaz, on="Date", how="outer", suffixes=("_old", ""))
-    col = "Prix Gaz (€/MWh)"
-    old_col = f"{col}_old"
-    if old_col in df_gaz.columns:
-        df_gaz[col] = df_gaz[col].combine_first(df_gaz[old_col])
-        df_gaz.drop(columns=[old_col], inplace=True)
+    if "Last Price_old" in df_gaz.columns:
+        df_gaz["Last Price"] = df_gaz["Last Price"].combine_first(df_gaz["Last Price_old"])
+        df_gaz.drop(columns=["Last Price_old"], inplace=True)
 else:
     df_gaz = df_new_gaz
+
+# On garde uniquement les colonnes souhaitées
+df_gaz = df_gaz[["Date", "Last Price"]]
 
 # === CO2 ===
 co2_files = sorted(glob.glob("archives/html_co2/eex_co2_*.html"), key=os.path.getmtime)
