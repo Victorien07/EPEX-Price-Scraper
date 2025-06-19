@@ -16,7 +16,7 @@ Les données sont extraites depuis les sites officiels, archivées en HTML, puis
   - Les données sont extraites depuis les fichiers HTML
   - Les prix sont insérés dans un fichier Excel multi-feuilles :
     - Feuille 1 : `Prix Spot` (électricité heure par heure)
-    - Feuille 2 : `Gaz` (Last Price, Last Volume, End of Day Index)
+    - Feuille 2 : `Gaz` (Last Price)
     - Feuille 3 : `CO2` (Last Price)
 
 - 📁 Les fichiers HTML sont archivés dans :
