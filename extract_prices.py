@@ -99,26 +99,23 @@ for path in gaz_files:
         item = data["results"]["items"][0]
         gaz_records.append({
             "Date": date_str,
-            "Last Price": item.get("ontradeprice", "-"),
-            "Last Volume": item.get("onexchsingletradevolume", "-"),
-            "End of Day Index": item.get("close", "-")
+            "Prix Gaz (€/MWh)": item.get("ontradeprice", "-")
         })
     except Exception:
         gaz_records.append({
             "Date": date_str,
-            "Last Price": "-",
-            "Last Volume": "-",
-            "End of Day Index": "-"
+            "Prix Gaz (€/MWh)": "-"
         })
 
 df_new_gaz = pd.DataFrame(gaz_records).sort_values("Date")
+
 if not df_existing_gaz.empty:
     df_gaz = pd.merge(df_existing_gaz, df_new_gaz, on="Date", how="outer", suffixes=("_old", ""))
-    for col in ["Last Price", "Last Volume", "End of Day Index"]:
-        old_col = f"{col}_old"
-        if old_col in df_gaz.columns:
-            df_gaz[col] = df_gaz[col].combine_first(df_gaz[old_col])
-            df_gaz.drop(columns=[old_col], inplace=True)
+    col = "Prix Gaz (€/MWh)"
+    old_col = f"{col}_old"
+    if old_col in df_gaz.columns:
+        df_gaz[col] = df_gaz[col].combine_first(df_gaz[old_col])
+        df_gaz.drop(columns=[old_col], inplace=True)
 else:
     df_gaz = df_new_gaz
 
