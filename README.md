@@ -9,8 +9,8 @@ Les données sont extraites depuis les sites officiels, archivées en HTML, puis
 
 - 🕒 Tous les jours à **15h00 (heure de Paris)**, le scraper télécharge les pages HTML suivantes :
   - ⚡ Électricité : prix Day-Ahead du **lendemain (J+1)**
-  - 🔥 Gaz : prix PEG Day-Ahead de la **veille (J-1)**
-  - 🌿 CO₂ : prix "Last Price" EUA de la **veille (J-1)**
+  - 🔥 Gaz : prix PEG Day-Ahead d' **aujourd'hui (J)**
+  - 🌿 CO₂ : prix "Last Price" EUA d' **aujourd'hui (J)**
 
 - 🧹 À **15h15 (heure de Paris)** :
   - Les données sont extraites depuis les fichiers HTML
