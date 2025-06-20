@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 # === Setup
 now = datetime.utcnow() + timedelta(hours=2)
-yesterday_api = (now - timedelta(days=1)).strftime("%Y/%m/%d")
+today_api = now.strftime("%Y/%m/%d")
 
 # === Dossiers
 os.makedirs("archives/html_gaz", exist_ok=True)
@@ -22,8 +22,8 @@ headers = {
 gaz_api = "https://webservice-eex.gvsi.com/query/json/getDaily/ontradeprice/onexchsingletradevolume/close/tradedatetimegmt/"
 gaz_params = {
     "priceSymbol": '"#E.PEG_GND1"',
-    "chartstartdate": yesterday_api,
-    "chartstopdate": yesterday_api,
+    "chartstartdate": today_api,
+    "chartstopdate": today_api,
     "dailybarinterval": "Days",
     "aggregatepriceselection": "First"
 }
@@ -50,8 +50,8 @@ except Exception as e:
 co2_api = "https://webservice-eex.gvsi.com/query/json/getDaily/ontradeprice/onexchsingletradevolume/close/onexchtradevolumeeex/offexchtradevolumeeex/tradedatetimegmt/"
 co2_params = {
     "priceSymbol": '"/E.SEME[0]"',
-    "chartstartdate": yesterday_api,
-    "chartstopdate": yesterday_api,
+    "chartstartdate": today_api,
+    "chartstopdate": today_api,
     "dailybarinterval": "Days",
     "aggregatepriceselection": "First"
 }
