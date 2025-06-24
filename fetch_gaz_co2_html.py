@@ -22,6 +22,25 @@ is_weekend = today_weekday in [5, 6]  # samedi ou dimanche
 friday = now - timedelta(days=(today_weekday - 4 if today_weekday >= 5 else 1))
 friday_str = friday.strftime("%Y-%m-%d")
 
+# === ✅ Bloc TEMPORAIRE pour test (forcer téléchargement du vendredi si on est mardi par ex)
+force_weekend_test = True  # ⬅️ mets à False ou supprime ce bloc après essai
+if force_weekend_test:
+    print("🔁 [TEST] Forçage du téléchargement des pages du vendredi pour test PEG Weekend/CO2")
+
+    if not os.path.exists(gaz_we_html):
+        fetch_html_with_date(
+            "https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot",
+            gaz_we_html,
+            friday_str
+        )
+
+    if not os.path.exists(co2_we_html):
+        fetch_html_with_date(
+            "https://www.eex.com/en/market-data/market-data-hub/environmentals/spot",
+            co2_we_html,
+            friday_str
+        )
+
 
 # === Dossiers ===
 os.makedirs("archives/html_gaz", exist_ok=True)
