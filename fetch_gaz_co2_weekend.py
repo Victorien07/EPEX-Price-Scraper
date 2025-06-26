@@ -45,6 +45,7 @@ gaz_params = {
     "chartstartdate": friday_api,
     "chartstopdate": friday_api,
     "dailybarinterval": "Days",
+    "dontincludecurrentday": "1",
     "aggregatepriceselection": "First"
 }
 
