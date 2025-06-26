@@ -8,7 +8,7 @@ weekday = now.weekday()
 
 # 🔧 SIMULATION : Forcer la date pour tester le dimanche ou le lundi
 # Ex : simuler dimanche 2025-06-22 (le vendredi précédent est le 2025-06-20)
-TEST_MODE = True
+TEST_MODE = False
 if TEST_MODE:
     now = datetime(2025, 6, 22, 10, 0)  # 👈 Change la date ici (dimanche ou lundi)
 
