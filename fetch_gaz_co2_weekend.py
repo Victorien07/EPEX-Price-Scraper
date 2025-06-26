@@ -6,6 +6,14 @@ from datetime import datetime, timedelta
 now = datetime.utcnow() + timedelta(hours=2)
 weekday = now.weekday()
 
+# 🔧 SIMULATION : Forcer la date pour tester le dimanche ou le lundi
+# Ex : simuler dimanche 2025-06-22 (le vendredi précédent est le 2025-06-20)
+TEST_MODE = True
+if TEST_MODE:
+    now = datetime(2025, 6, 22, 10, 0)  # 👈 Change la date ici (dimanche ou lundi)
+
+weekday = now.weekday()
+
 # Ne s'exécute que dimanche (6) et lundi (0)
 if weekday not in [0, 6]:
     print("⏩ Ce n'est ni dimanche ni lundi : pas de récupération PEG WEEKEND / CO2.")
