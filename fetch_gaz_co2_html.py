@@ -14,41 +14,35 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# === Dates ===
-now = datetime.utcnow() + timedelta(hours=2)  # UTC->Paris
-yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-today_weekday = now.weekday()  # 0=lundi, ..., 6=dimanche
-is_weekend = today_weekday in [5, 6]  # samedi ou dimanche
-friday = now - timedelta(days=(today_weekday - 4 if today_weekday >= 5 else 1))
-friday_str = friday.strftime("%Y-%m-%d")
+# === Gestion de la date de récupération ===
+now = datetime.utcnow() + timedelta(hours=2)  # Heure Paris
+today_weekday = now.weekday()  # 0 = lundi ... 6 = dimanche
 
-# === ✅ Bloc TEMPORAIRE pour test (forcer téléchargement du vendredi si on est mardi par ex)
-force_weekend_test = True  # ⬅️ mets à False ou supprime ce bloc après essai
-if force_weekend_test:
-    print("🔁 [TEST] Forçage du téléchargement des pages du vendredi pour test PEG Weekend/CO2")
+if today_weekday == 6:  # Dimanche
+    target_date = now - timedelta(days=1)  # Samedi
+    download_date = now - timedelta(days=2)  # Vendredi
+    weekend_mode = True
+elif today_weekday == 0:  # Lundi
+    target_date = now  # Lundi
+    download_date = now - timedelta(days=3)  # Vendredi
+    weekend_mode = True
+else:
+    target_date = now - timedelta(days=1)  # Hier
+    download_date = target_date
+    weekend_mode = False
 
-    if not os.path.exists(gaz_we_html):
-        fetch_html_with_date(
-            "https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot",
-            gaz_we_html,
-            friday_str
-        )
+target_str = target_date.strftime("%Y-%m-%d")
+download_str = download_date.strftime("%Y-%m-%d")
 
-    if not os.path.exists(co2_we_html):
-        fetch_html_with_date(
-            "https://www.eex.com/en/market-data/market-data-hub/environmentals/spot",
-            co2_we_html,
-            friday_str
-        )
-
+if weekend_mode:
+    print(f"📆 Mode week-end activé → données du vendredi ({download_str}) enregistrées sous {target_str}")
+else:
+    print(f"📆 Mode semaine → données récupérées pour {target_str}")
 
 # === Dossiers ===
 os.makedirs("archives/html_gaz", exist_ok=True)
 os.makedirs("archives/html_co2", exist_ok=True)
 os.makedirs("data", exist_ok=True)
-os.makedirs("archives/html_gaz_WE", exist_ok=True)
-os.makedirs("archives/html_co2_WE", exist_ok=True)
-
 
 # === Setup Selenium (Headless) ===
 def setup_driver():
@@ -58,17 +52,15 @@ def setup_driver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
-# === Utilitaires pour cliquer et changer la date ===
+# === Utilitaires ===
 def fetch_html_with_date(url, path, date_str):
     driver = setup_driver()
     driver.set_page_load_timeout(60)
-
     try:
         print(f"🌐 Accès à {url}")
         driver.get(url)
-        time.sleep(7)  # Laisse le JS charger (page très lourde)
+        time.sleep(7)
 
-        # Essayons de passer dans une iframe si présente, sinon on reste sur main document
         try:
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
             iframes = driver.find_elements(By.TAG_NAME, "iframe")
@@ -78,7 +70,6 @@ def fetch_html_with_date(url, path, date_str):
         except:
             print("ℹ️ Pas d'iframe trouvée, on reste sur le document principal.")
 
-        # Attente explicite du champ de date
         print("⏳ Recherche du champ date...")
         date_input = WebDriverWait(driver, 30).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "input.eex-date-picker__input"))
@@ -91,42 +82,36 @@ def fetch_html_with_date(url, path, date_str):
         date_input.send_keys(date_str)
         date_input.send_keys(Keys.ENTER)
 
-        time.sleep(10)  # Laisse les données se rafraîchir
+        time.sleep(10)
 
-        # Sauvegarde HTML
         with open(path, "w", encoding="utf-8") as f:
             f.write(driver.page_source)
         print(f"✅ HTML sauvegardé : {path}")
 
     except Exception as e:
         print("❌ Erreur : ", e)
-
-        # Sauvegarde page HTML
         with open("debug_failed_page.html", "w", encoding="utf-8") as f:
             f.write(driver.page_source)
-        print("🛠 HTML sauvegardé pour debug: debug_failed_page.html")
-
-        # Screenshot pour analyse
-        screenshot_path = "debug_failed_screenshot.png"
         try:
-            driver.save_screenshot(screenshot_path)
-            print(f"📸 Screenshot sauvegardé : {screenshot_path}")
-        except Exception as screen_error:
-            print("⚠️ Échec de la capture écran :", screen_error)
-
+            driver.save_screenshot("debug_failed_screenshot.png")
+        except:
+            pass
         raise
-
     finally:
         driver.quit()
 
+# === Chemins des fichiers HTML
+gaz_html = f"archives/html_gaz/eex_gaz_{target_str}.html"
+co2_html = f"archives/html_co2/eex_co2_{target_str}.html"
 
-
-
-# === Télécharger et extraire Gaz (J–1) ===
-gaz_html = f"archives/html_gaz/eex_gaz_{yesterday}.html"
+# === Télécharger HTML si non existants
 if not os.path.exists(gaz_html):
-    fetch_html_with_date("https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot", gaz_html, yesterday)
+    fetch_html_with_date("https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot", gaz_html, download_str)
 
+if not os.path.exists(co2_html):
+    fetch_html_with_date("https://www.eex.com/en/market-data/market-data-hub/environmentals/spot", co2_html, download_str)
+
+# === Extraction Gaz
 gaz_data = []
 with open(gaz_html, encoding="utf-8") as f:
     soup = BeautifulSoup(f, "html.parser")
@@ -143,23 +128,19 @@ if peg_row:
             val = "-"
         parsed_values.append(val)
     gaz_data.append({
-        "Date": yesterday,
+        "Date": target_str,
         "Bid": parsed_values[0],
         "Ask": parsed_values[1],
         "Last": parsed_values[2],
     })
 else:
     gaz_data.append({
-        "Date": yesterday,
+        "Date": target_str,
         "Bid": "-", "Ask": "-", "Last": "-",
     })
 df_gaz = pd.DataFrame(gaz_data)
 
-# === Télécharger et extraire CO2 (J–1) ===
-co2_html = f"archives/html_co2/eex_co2_{yesterday}.html"
-if not os.path.exists(co2_html):
-    fetch_html_with_date("https://www.eex.com/en/market-data/market-data-hub/environmentals/spot", co2_html, yesterday)
-
+# === Extraction CO2
 co2_data = []
 with open(co2_html, encoding="utf-8") as f:
     soup = BeautifulSoup(f, "html.parser")
@@ -173,28 +154,15 @@ if last_price_tag:
 else:
     last_price = "-"
 co2_data.append({
-    "Date": yesterday,
+    "Date": target_str,
     "Last Price": last_price,
 })
 df_co2 = pd.DataFrame(co2_data)
 
-# === Télécharger Gaz et CO2 du vendredi si week-end (pour PEG Weekend et CO2) ===
-gaz_we_html = f"archives/html_gaz_WE/eex_gaz_weekend_{friday_str}.html"
-co2_we_html = f"archives/html_co2_WE/eex_co2_weekend_{friday_str}.html"
-
-if is_weekend:
-    if not os.path.exists(gaz_we_html):
-        fetch_html_with_date("https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot", gaz_we_html, friday_str)
-
-    if not os.path.exists(co2_we_html):
-        fetch_html_with_date("https://www.eex.com/en/market-data/market-data-hub/environmentals/spot", co2_we_html, friday_str)
-
-
-# === Export Excel ===
+# === Export Excel
 excel_file = "data/gaz_co2_data.xlsx"
-with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
+with pd.ExcelWriter(excel_file, engine="openpyxl", mode='w') as writer:
     df_gaz.to_excel(writer, sheet_name="Gaz", index=False)
     df_co2.to_excel(writer, sheet_name="CO2", index=False)
 
 print("✅ Données Gaz & CO2 récupérées et enregistrées.")
-
