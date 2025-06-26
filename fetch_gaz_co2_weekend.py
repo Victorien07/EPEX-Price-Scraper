@@ -41,7 +41,7 @@ sunday = (friday + timedelta(days=2)).strftime("%Y-%m-%d")
 # === GAZ : PEG WEEKEND
 gaz_api = "https://webservice-eex.gvsi.com/query/json/getDaily/ontradeprice/onexchsingletradevolume/close/tradedatetimegmt/"
 gaz_params = {
-    priceSymbol = "#E.PEG_GWE1",
+    "priceSymbol": "#E.PEG_GWE1",
     "chartstartdate": friday_api,
     "chartstopdate": friday_api,
     "dailybarinterval": "Days",
