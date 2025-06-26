@@ -24,6 +24,7 @@ jobs:
       - name: Run EPEX + Gaz + CO2 scrapers
         run: |
           echo "📥 Lancement des scrapers..."
+          python fetch_gaz_co2_weekend.py  # <--- NOUVEAU
           python fetch_gaz_co2_html.py
           python epex_scraper.py
           echo "📁 Contenu du dossier après exécution :"
