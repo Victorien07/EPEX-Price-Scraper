@@ -30,18 +30,7 @@ jobs:
           echo "📁 Contenu du dossier après exécution :"
           ls -lha .
 
-      - name: Commit and push CSV
-        run: |
-          if ls *.csv 1> /dev/null 2>&1; then
-            git config --global user.email "action@github.com"
-            git config --global user.name "GitHub Action"
-            git add *.csv
-            git commit -m "📊 Add EPEX prices for $(date +'%Y-%m-%d')"
-            git push
-          else
-            echo "⚠️ Aucun fichier CSV à committer"
-          fi
-
+      
       - name: Commit and push archived HTML files
         run: |
           git config --global user.email "action@github.com"
