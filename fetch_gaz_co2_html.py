@@ -104,12 +104,19 @@ def fetch_html_with_date(url, path, date_str):
 gaz_html = f"archives/html_gaz/eex_gaz_{target_str}.html"
 co2_html = f"archives/html_co2/eex_co2_{target_str}.html"
 
-# === Télécharger HTML si non existants
-if not os.path.exists(gaz_html):
-    fetch_html_with_date("https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot", gaz_html, download_str)
+# === Télécharger HTML meme si existants
+fetch_html_with_date(
+    "https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot",
+    gaz_html,
+    download_str
+)
 
-if not os.path.exists(co2_html):
-    fetch_html_with_date("https://www.eex.com/en/market-data/market-data-hub/environmentals/spot", co2_html, download_str)
+fetch_html_with_date(
+    "https://www.eex.com/en/market-data/market-data-hub/environmentals/spot",
+    co2_html,
+    download_str
+)
+
 
 # === Extraction Gaz
 gaz_data = []
