@@ -8,7 +8,7 @@ Les données sont extraites depuis les sites officiels, archivées en HTML, puis
 ## 🔄 Fonctionnement
 
 - 🕒 Tous les jours à **15h00 (heure de Paris)**, le scraper télécharge les pages HTML suivantes :
-  - ⚡ Électricité : prix Day-Ahead de **demain (J+1)** 
+  - ⚡ Électricité : prix Day-Ahead de **demain (J+1)** https://www.epexspot.com/en/market-results?
   - 🔥 Gaz : prix PEG Day-Ahead d'**hier (J-1)** https://www.eex.com/en/market-data/market-data-hub/natural-gas/spot
   - 🌿 CO₂ : prix "Last Price" EUA d'**hier (J-1)** https://www.eex.com/en/market-data/market-data-hub/environmentals/spot
 
