@@ -1,0 +1,30 @@
+name: Cleanup Archives
+
+on:
+  schedule:
+    # Tous les jours à 02h00 UTC (04h00 Paris)
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Permet de lancer manuellement le workflow
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Supprimer les fichiers archivés >30 jours
+        run: |
+          echo "🗑️ Nettoyage des fichiers archivés vieux de plus de 30 jours..."
+          find archives/html -type f -name "*.html" -mtime +30 -print -delete
+          find archives/html_gaz -type f -name "*.html" -mtime +30 -print -delete
+          find archives/html_co2 -type f -name "*.html" -mtime +30 -print -delete
+
+      - name: Commit et push suppressions
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add -u
+          git diff --cached --quiet || git commit -m "Supprimer les archives >30 jours"
+          git push
