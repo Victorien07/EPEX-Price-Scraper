@@ -164,27 +164,4 @@ with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
 print(f"✅ Fichier Excel mis à jour avec électricité, gaz et CO2 : {excel_file}")
 
 
-# === Nettoyage des archives de plus de 30 jours (basé sur la date dans le nom) ===
-def cleanup_old_files_with_date(folder, prefix, pattern, days=30):
-    cutoff = datetime.now() - pd.Timedelta(days=days)
-    deleted_files = []
-
-    files = glob.glob(os.path.join(folder, pattern))
-    for f in files:
-        date_str = extract_date(f, prefix)
-        if date_str:
-            try:
-                file_date = datetime.strptime(date_str, "%Y-%m-%d")
-                if file_date < cutoff:
-                    os.remove(f)
-                    deleted_files.append(f)
-                    print(f"🗑️ Fichier supprimé (trop vieux) : {f}")
-            except Exception as e:
-                print(f"⚠️ Erreur sur {f} : {e}")
-    return deleted_files
-
-# Appliquer aux 3 types d’archives
-cleanup_old_files_with_date("archives/html", "epex_FR", "epex_FR_*.html", days=30)
-cleanup_old_files_with_date("archives/html_gaz", "eex_gaz", "eex_gaz_*.html", days=30)
-cleanup_old_files_with_date("archives/html_co2", "eex_co2", "eex_co2_*.html", days=30)
 
