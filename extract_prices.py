@@ -172,15 +172,15 @@ def cleanup_old_files(folder, pattern, days=30):
     for f in files:
         try:
             # Vérifie la date de modification du fichier
-            if os.path.getmtime(f) < cutoff:
+           if os.path.isfile(f) and os.path.getmtime(f) < cutoff:
                 os.remove(f)
-                print(f"🗑️ Fichier supprimé (ancien) : {f}")
+                print(f"🗑️ Fichier supprimé : {f}")
         except Exception as e:
             print(f"⚠️ Impossible de supprimer {f} : {e}")
 
-# Appliquer au 3 types d’archives
-cleanup_old_files("archives/html", "epex_FR_*.html", days=30)
-cleanup_old_files("archives/html_gaz", "eex_gaz_*.html", days=30)
-cleanup_old_files("archives/html_co2", "eex_co2_*.html", days=30)
+# === Appliquer aux 3 types d’archives ===
+cleanup_old_files("archives/html", "*.html", days=30)
+cleanup_old_files("archives/html_gaz", "*.html", days=30)
+cleanup_old_files("archives/html_co2", "*.html", days=30)
 
 
