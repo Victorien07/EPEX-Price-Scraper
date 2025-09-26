@@ -32,34 +32,6 @@ def fetch_epex_prices():
         f.write(response.text)
     print(f"📄 Page HTML archivée : {html_path}")
 
-    # 📊 Extraction du tableau
-    soup = BeautifulSoup(response.text, "html.parser")
-    table = soup.find("table", class_="table table-sm table-hover")
-
-    if not table:
-        print("⚠️ Tableau introuvable (probablement trop tôt).")
-        return
-
-    # 🔍 Lecture des lignes
-    data = []
-    for row in table.find_all("tr"):
-        cols = row.find_all("td")
-        if len(cols) >= 2:
-            hour = cols[0].get_text(strip=True)
-            price = cols[1].get_text(strip=True).replace(",", ".").replace("€", "")
-            try:
-                data.append({"hour": hour, "price_eur_mwh": float(price)})
-            except ValueError:
-                continue
-
-    # 💾 Sauvegarde CSV
-    if data:
-        df = pd.DataFrame(data)
-        csv_path = f"archives/csv/epex_FR_{delivery_date}.csv"
-        df.to_csv(csv_path, index=False)
-        print(f"✅ Données enregistrées : {csv_path}")
-    else:
-        print("⚠️ Aucun prix valide trouvé dans le tableau.")
 
 if __name__ == "__main__":
     fetch_epex_prices()
