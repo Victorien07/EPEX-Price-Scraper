@@ -17,14 +17,14 @@ jobs:
       - name: Supprimer les fichiers archivés >30 jours
         run: |
           echo "🗑️ Nettoyage des fichiers archivés vieux de plus de 30 jours..."
-          find archives/html -type f -name "*.html" -mtime +30 -print -delete
-          find archives/html_gaz -type f -name "*.html" -mtime +30 -print -delete
-          find archives/html_co2 -type f -name "*.html" -mtime +30 -print -delete
+          # Parcourt tous les sous-dossiers de archives et supprime .html et .json
+          find archives -type f \( -name "*.html" -o -name "*.json" \) -mtime +30 -print -delete
 
       - name: Commit et push suppressions
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add -u
+          # Vérifie s’il y a des suppressions à commit
           git diff --cached --quiet || git commit -m "Supprimer les archives >30 jours"
           git push
