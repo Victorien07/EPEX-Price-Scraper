@@ -13,37 +13,29 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Supprimer les fichiers archivés de plus de 30 jours
+    # Suppression archives électricité > 30 jours
+    - name: Suppression des fichiers archivés électricité > 30 jours
       run: |
-        echo "🗑️ Nettoyage des archives"
-        today=$(date +%s)
+        echo "🗑️ Suppression des fichiers HTML électricité de plus de 30 jours"
+        find archives/html -type f -mtime +30 -exec rm {} \;
 
-        # Balayage de tous les fichiers HTML dans archives/html
-        for f in archives/html/*.html; do
-          [ -e "$f" ] || continue
-          fname=$(basename "$f")
+    # Suppression archives gaz > 30 jours
+    - name: Suppression des fichiers archivés gaz > 30 jours
+      run: |
+        echo "🗑️ Suppression des fichiers HTML gaz de plus de 30 jours"
+        find archives/html_gaz -type f -mtime +30 -exec rm {} \;
 
-          # extraire la date (ex: 2025-06-18)
-          fdate=$(echo "$fname" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
-          if [ -n "$fdate" ]; then
-            fsec=$(date -d "$fdate" +%s || true)
-            if [ -n "$fsec" ]; then
-              age=$(( (today - fsec) / 86400 ))
-              if [ $age -gt 30 ]; then
-                echo "🗑️ Suppression $f (âge $age jours)"
-                rm "$f"
-              fi
-            fi
-          fi
-        done
+    # Suppression archives CO2 > 30 jours
+    - name: Suppression des fichiers archivés CO2 > 30 jours
+      run: |
+        echo "🗑️ Suppression des fichiers HTML CO2 de plus de 30 jours"
+        find archives/html_co2 -type f -mtime +30 -exec rm {} \;
 
     - name: Commit and push changes
       run: |
-        git config --global user.name "actions-user"
-        git config --global user.email "actions@github.com"
-        git add -u
-        if git commit -m "🗑️ Suppression des archives > 30 jours"; then
-          git push
-        else
-          echo "✅ Aucun fichier à supprimer"
-        fi
+        git config user.name "actions-user"
+        git config user.email "actions@github.com"
+        git add -A
+        git commit -m "🗑️ Cleanup old archives"
+        git push
+
