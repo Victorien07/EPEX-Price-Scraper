@@ -13,17 +13,37 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Suppression des fichiers archivés > 30 jours
+    - name: Supprimer les fichiers archivés de plus de 30 jours
       run: |
-        echo "🗑️ Suppression des fichiers archivés vieux de plus de 30 jours..."
-        find archives/html/ -type f \( -name "*.html" -o -name "*.json" \) -mtime +30 -print -delete
-        find archives/html_gaz/ -type f \( -name "*.html" -o -name "*.json" \) -mtime +30 -print -delete
-        find archives/html_co2/ -type f \( -name "*.html" -o -name "*.json" \) -mtime +30 -print -delete
+        echo "🗑️ Nettoyage des archives"
+        today=$(date +%s)
 
-    - name: Commit & push changements
+        # Balayage de tous les fichiers HTML dans archives/html
+        for f in archives/html/*.html; do
+          [ -e "$f" ] || continue
+          fname=$(basename "$f")
+
+          # extraire la date (ex: 2025-06-18)
+          fdate=$(echo "$fname" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          if [ -n "$fdate" ]; then
+            fsec=$(date -d "$fdate" +%s || true)
+            if [ -n "$fsec" ]; then
+              age=$(( (today - fsec) / 86400 ))
+              if [ $age -gt 30 ]; then
+                echo "🗑️ Suppression $f (âge $age jours)"
+                rm "$f"
+              fi
+            fi
+          fi
+        done
+
+    - name: Commit and push changes
       run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add archives/
-        git commit -m "🗑️ Nettoyage automatique des archives > 30 jours" || echo "Rien à commit"
-        git push
+        git config --global user.name "actions-user"
+        git config --global user.email "actions@github.com"
+        git add -u
+        if git commit -m "🗑️ Suppression des archives > 30 jours"; then
+          git push
+        else
+          echo "✅ Aucun fichier à supprimer"
+        fi
