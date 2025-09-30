@@ -13,29 +13,58 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Suppression archives électricité > 30 jours
-    - name: Suppression des fichiers archivés électricité > 30 jours
+    - name: Supprimer les fichiers archivés de plus de 30 jours
       run: |
-        echo "🗑️ Suppression des fichiers HTML électricité de plus de 30 jours"
-        find archives/html -type f -mtime +30 -exec rm {} \;
+        echo "🗑️ Nettoyage des archives"
+        today=$(date +%s)
+        deleted_any=false
 
-    # Suppression archives gaz > 30 jours
-    - name: Suppression des fichiers archivés gaz > 30 jours
-      run: |
-        echo "🗑️ Suppression des fichiers HTML gaz de plus de 30 jours"
-        find archives/html_gaz -type f -mtime +30 -exec rm {} \;
+        # Liste des dossiers à traiter
+        for dir in archives/html archives/html_gaz archives/html_co2; do
+          echo "📂 Traitement du dossier $dir"
+          if [ ! -d "$dir" ]; then
+            echo "⚠️ Dossier $dir introuvable, on passe."
+            continue
+          fi
 
-    # Suppression archives CO2 > 30 jours
-    - name: Suppression des fichiers archivés CO2 > 30 jours
-      run: |
-        echo "🗑️ Suppression des fichiers HTML CO2 de plus de 30 jours"
-        find archives/html_co2 -type f -mtime +30 -exec rm {} \;
+          deleted_in_dir=false
+
+          for f in "$dir"/*.html; do
+            [ -e "$f" ] || continue
+            fname=$(basename "$f")
+
+            # extraire la date (ex: 2025-06-18)
+            fdate=$(echo "$fname" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+            if [ -n "$fdate" ]; then
+              fsec=$(date -d "$fdate" +%s || true)
+              if [ -n "$fsec" ]; then
+                age=$(( (today - fsec) / 86400 ))
+                if [ $age -gt 30 ]; then
+                  echo "🗑️ Suppression $f (âge $age jours)"
+                  rm "$f"
+                  deleted_any=true
+                  deleted_in_dir=true
+                fi
+              fi
+            fi
+          done
+
+          if [ "$deleted_in_dir" = false ]; then
+            echo "✅ Tous les fichiers de $dir ont moins de 30 jours"
+          fi
+        done
+
+        if [ "$deleted_any" = false ]; then
+          echo "✅ Aucun fichier supprimé dans tous les dossiers (toutes les dates < 30 jours)"
+        fi
 
     - name: Commit and push changes
       run: |
-        git config user.name "actions-user"
-        git config user.email "actions@github.com"
-        git add -A
-        git commit -m "🗑️ Cleanup old archives"
-        git push
-
+        git config --global user.name "actions-user"
+        git config --global user.email "actions@github.com"
+        git add -u
+        if git commit -m "🗑️ Suppression des archives > 30 jours"; then
+          git push
+        else
+          echo "✅ Aucun fichier à supprimer"
+        fi
