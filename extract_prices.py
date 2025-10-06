@@ -59,7 +59,7 @@ for delivery_date, html_file in sorted(elec_latest.items()):
     else:
         price_data[col_label] = ["-"] * 24
 """
-        if len(prices) == 24:
+    if len(prices) == 24:
         # Données horaires normales
         price_data[col_label] = prices
 
