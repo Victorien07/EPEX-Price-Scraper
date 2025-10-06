@@ -54,15 +54,7 @@ for delivery_date, html_file in sorted(elec_latest.items()):
     except ValueError:
         prices = []
         
-   """ 
-    if len(prices) >= 96:
-        prices = [round(sum(prices[i:i+4])/4, 2) for i in range(0, 96, 4)]
-    elif len(prices) >= 24:
-        prices = prices[:24]
-    else:
-        print(f"⚠️ {delivery_date}: {len(prices)} valeurs détectées (incomplet)")
-        prices = ["-"] * 24
-    """
+
     if len(prices) >= 96:
         prices = [round(sum(prices[i:i+4])/4, 2) for i in range(0, 96, 4)]
     elif len(prices) >= 24:
@@ -71,7 +63,8 @@ for delivery_date, html_file in sorted(elec_latest.items()):
         print(f"⚠️ {delivery_date}: {len(prices)} valeurs détectées (incomplet)")
         prices = ["-"] * 24
 
-    
+    # Stocke les valeurs pour cette journée
+    price_data[col_label] = prices
 
 # Créer labels horaires
 heure_labels = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
