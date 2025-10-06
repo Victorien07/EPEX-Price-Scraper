@@ -19,7 +19,7 @@ def fetch_epex_prices():
         f"market_area=FR&auction=MRC"
         f"&trading_date={trading_date}"
         f"&delivery_date={delivery_date}"
-        f"&modality=Auction&sub_modality=DayAhead&data_mode=table"
+        f"&modality=Auction&sub_modality=DayAhead&data_mode=table&product=60"
     )
     print(f"🔗 URL utilisée : {url}")
 
