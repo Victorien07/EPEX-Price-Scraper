@@ -54,24 +54,17 @@ for delivery_date, html_file in sorted(elec_latest.items()):
     except ValueError:
         prices = []
         
-    if len(prices) == 24:
-        price_data[col_label] = price
     
-    elif len(prices) == 96:
-        # Données quart-horaires → on fait la moyenne par heure
-        hourly_prices = []
-        for h in range(24):
-            quarter_values = prices[h*4:(h+1)*4]
-            avg = sum(quarter_values) / len(quarter_values)
-            hourly_prices.append(round(avg, 2))
-        price_data[col_label] = hourly_prices
-        print(f"🕐 {delivery_date} : 96 valeurs détectées → moyennées en 24 valeurs horaires")
-
+    if len(prices) >= 96:
+        prices = [round(sum(prices[i:i+4])/4, 2) for i in range(0, 96, 4)]
+    elif len(prices) >= 24:
+        prices = prices[:24]
     else:
-        # Nombre inattendu de valeurs
-        print(f"⚠️ {delivery_date} : {len(prices)} valeurs détectées (inattendu)")
-        price_data[col_label] = ["-"] * 24
+        print(f"⚠️ {delivery_date}: {len(prices)} valeurs détectées (incomplet)")
+        prices = ["-"] * 24
 
+    
+    
 
 # Créer labels horaires
 heure_labels = [f"{str(h).zfill(2)} - {str(h+1).zfill(2)}" for h in range(24)]
