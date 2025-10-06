@@ -53,12 +53,12 @@ for delivery_date, html_file in sorted(elec_latest.items()):
         prices = [float(p) for p in prices]
     except ValueError:
         prices = []
-
-    # 🔽 Détection du format et conversion si besoin
-    if len(prices) == 24:
-        # Données horaires normales
-        price_data[col_label] = prices
         
+    if len(prices) == 24:
+        price_data[col_label] = prices
+    else:
+        price_data[col_label] = ["-"] * 24
+    
     elif len(prices) == 96:
         # Données quart-horaires → on fait la moyenne par heure
         hourly_prices = []
