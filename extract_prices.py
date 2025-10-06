@@ -54,9 +54,8 @@ for delivery_date, html_file in sorted(elec_latest.items()):
     except ValueError:
         prices = []
 
-    if len(prices) == 24:
-        # Données horaires normales
-        price_data[col_label] = prices
+    if len(prices) > 24:
+        prices = prices[::4]  # garde seulement les 24 valeurs “00:00, 01:00, …”
 
     elif len(prices) == 96:
         # Données quart-horaires → on fait la moyenne par heure
