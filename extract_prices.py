@@ -55,9 +55,7 @@ for delivery_date, html_file in sorted(elec_latest.items()):
         prices = []
         
     if len(prices) == 24:
-        price_data[col_label] = prices
-    else:
-        price_data[col_label] = ["-"] * 24
+        price_data[col_label] = price
     
     elif len(prices) == 96:
         # Données quart-horaires → on fait la moyenne par heure
