@@ -12,7 +12,7 @@ def fetch_epex_prices():
 
     url = (
         f"https://www.epexspot.com/en/market-results?"
-        f"market_area=FR&auction=MRC"
+        f"market_area=XX&auction=MRC"
         f"&trading_date={trading_date}"
         f"&delivery_date={delivery_date}"
         f"&modality=Auction&sub_modality=DayAhead&data_mode=table&product=60"
