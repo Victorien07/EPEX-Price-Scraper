@@ -1,9 +1,10 @@
 name: EPEX Scraper
 
 on:
-  schedule:
-    - cron: '0 6 * * *'  # tous les jours à 6h
-  workflow_dispatch:
+  workflow_dispatch:    # déclenchement manuel immédiat
+  push:                # ou à chaque push sur main
+    branches:
+      - main
 
 jobs:
   fetch:
@@ -23,7 +24,7 @@ jobs:
         run: python epex_scraper.py
 
       - name: Send email if failure
-        if: failure()  # <-- seulement si le job échoue
+        if: failure()  # <-- déclenché uniquement si le script fait sys.exit(1)
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -33,3 +34,6 @@ jobs:
           subject: "[ALERTE] EPEX Spot non disponible"
           to: "victorien.ficheux@edf.fr"
           body: "Le scraper EPEX Spot n’a pas pu récupérer la page. Vérifiez GitHub Actions."
+
+
+
