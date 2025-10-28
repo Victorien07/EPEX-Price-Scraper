@@ -1,5 +1,58 @@
+import datetime
+import os
+import requests
+import sys  # pour signaler l'échec au workflow
 
+def fetch_epex_prices():
+    trading_date = datetime.date.today().strftime("%Y-%m-%d")
+    delivery_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 
+    os.makedirs("archives/html", exist_ok=True)
+    os.makedirs("archives/csv", exist_ok=True)
+
+    url = (
+        f"https://www.epexspot.com/en/market-results?"
+        f"market_area=FR&auction=MRC"
+        f"&trading_date={trading_date}"
+        f"&delivery_date={delivery_date}"
+        f"&modality=Auction&sub_modality=DayAhead&data_mode=table&product=60"
+    )
+
+    html_path = f"archives/html/epex_FR_{delivery_date}.html"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        "Connection": "keep-alive",
+        "Referer": "https://www.epexspot.com/en/market-results",
+        "Upgrade-Insecure-Requests": "1",
+    }
+
+    try:
+        print("📡 Requête principale (requests)...")
+        response = requests.get(url, headers=headers, timeout=30)
+        status = response.status_code
+        print(f"📶 Statut HTTP : {status}")
+
+        if status == 200 and "Forbidden" not in response.text:
+            print("✅ Page HTML téléchargée avec succès.")
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(response.text)
+            print(f"📄 Page HTML archivée : {html_path}")
+        else:
+            print("❌ Accès refusé ou page vide.")
+            sys.exit(1)  # <-- signal d'échec immédiat
+
+    except Exception as e:
+        print(f"❌ Erreur lors de la récupération : {e}")
+        sys.exit(1)  # <-- signal d'échec immédiat
+
+if __name__ == "__main__":
+    fetch_epex_prices()
+
+'''
 import datetime
 import os
 import requests
@@ -65,7 +118,7 @@ if __name__ == "__main__":
     fetch_epex_prices()
 
 
-'''
+
 import datetime
 import requests
 from bs4 import BeautifulSoup
