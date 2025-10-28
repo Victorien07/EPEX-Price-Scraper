@@ -102,4 +102,4 @@ def fetch_epex_prices():
 
 if __name__ == "__main__":
     fetch_epex_prices()
-
+'''
