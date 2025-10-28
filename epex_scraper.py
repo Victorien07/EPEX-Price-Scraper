@@ -11,7 +11,7 @@ def fetch_epex_prices():
     os.makedirs("archives/csv", exist_ok=True)
 
     url = (
-        f"https://www.epexspot.com/en/market-results?"
+        f"https://www.epexspot.com/en/market-results?XX"
         f"market_area=FR&auction=MRC"
         f"&trading_date={trading_date}"
         f"&delivery_date={delivery_date}"
