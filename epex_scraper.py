@@ -1,8 +1,7 @@
-'''
+
 import datetime
 import os
 import requests
-from requests_html import HTMLSession
 
 def fetch_epex_prices():
     # 📅 Dates
@@ -33,7 +32,6 @@ def fetch_epex_prices():
         ),
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive",
         "Referer": "https://www.epexspot.com/en/market-results",
         "Upgrade-Insecure-Requests": "1",
@@ -47,35 +45,23 @@ def fetch_epex_prices():
         status = response.status_code
         print(f"📶 Statut HTTP : {status}")
 
+        # ⚠️ Vérification simple du contenu
         if status == 200 and "Forbidden" not in response.text:
-            print("✅ Page HTML téléchargée avec succès (requests).")
+            print("✅ Page HTML téléchargée avec succès.")
             with open(html_path, "w", encoding="utf-8") as f:
                 f.write(response.text)
             print(f"📄 Page HTML archivée : {html_path}")
-            return
-
-        # ⚠️ Si 403 ou contenu vide, essayer avec rendu JavaScript
-        print("⚠️ Accès bloqué ou contenu incomplet, tentative avec requests_html...")
-        session = HTMLSession()
-        r = session.get(url, headers=headers)
-        r.html.render(timeout=40, sleep=3)  # rend le JS
-        html = r.html.html
-
-        if html and "Forbidden" not in html:
-            print("✅ Page récupérée après rendu JavaScript.")
         else:
-            print("❌ Même après rendu JS, la page semble inaccessible.")
-
-        with open(html_path, "w", encoding="utf-8") as f:
-            f.write(html or response.text)
-        print(f"📄 Page archivée pour diagnostic : {html_path}")
+            print("❌ Accès refusé ou page vide, page sauvegardée pour diagnostic.")
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(response.text)
+            print(f"📄 Page archivée pour analyse : {html_path}")
 
     except Exception as e:
         print(f"❌ Erreur lors de la récupération : {e}")
 
 if __name__ == "__main__":
     fetch_epex_prices()
-
 
 
 '''
