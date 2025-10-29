@@ -34,7 +34,4 @@ Les données sont extraites depuis les sites officiels, archivées en HTML, puis
 
 ---
 
-## 📬 Contact
 
-Pour toute question ou contribution :  
-📧 victorien.ficheux@edf.fr
