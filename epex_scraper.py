@@ -9,7 +9,7 @@ def fetch_epex_prices():
 
     os.makedirs("archives/html", exist_ok=True)
     os.makedirs("archives/csv", exist_ok=True)
-
+'''
     url = (
         f"https://www.epexspot.com/en/market-results?"
         f"market_area=FR&auction=MRC"
@@ -17,7 +17,18 @@ def fetch_epex_prices():
         f"&delivery_date={delivery_date}"
         f"&modality=Auction&sub_modality=DayAhead&data_mode=table&product=60"
     )
+'''
+    url = (
+    f"https://www.epexspot.com/en/market-results?"
+    f"market_area=XX&auction=MRC"   # XX n'existe pas
+    f"&trading_date={trading_date}"
+    f"&delivery_date={delivery_date}"
+    f"&modality=Auction&sub_modality=DayAhead&data_mode=table&product=60"
+)
 
+
+
+    
     html_path = f"archives/html/epex_FR_{delivery_date}.html"
 
     headers = {
