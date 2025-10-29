@@ -32,7 +32,7 @@ jobs:
           username: ${{ secrets.SMTP_USER }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "[ALERTE] EPEX Spot non disponible"
-          to: "victorien.ficheux@edf.fr"
+          to: "ADRESSE MAIL"
           body: "Le scraper EPEX Spot n’a pas pu récupérer la page. Vérifiez GitHub Actions."
 
 
